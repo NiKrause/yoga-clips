@@ -1,267 +1,158 @@
-# Simple Todo - A Local-First Peer-to-Peer PWA Tutorial
+# Yoga Clips — a shared collection of short yoga clips, peer to peer
 
-[![Main E2E](https://github.com/NiKrause/simple-todo/actions/workflows/deploy.yml/badge.svg?branch=main)](https://github.com/NiKrause/simple-todo/actions/workflows/deploy.yml?query=branch%3Amain)
-[![Remote browser replication](https://github.com/NiKrause/simple-todo/actions/workflows/remote-replication.yml/badge.svg?branch=main)](https://github.com/NiKrause/simple-todo/actions/workflows/remote-replication.yml)
+A local-first PWA for the short clips (2–10 minutes) from your favourite yoga
+teachers: paste a link, give it a duration and a few tags, and share the
+playlist with friends — without a server, an account or a password. Built on
+the stack of [simple-todo](https://github.com/NiKrause/simple-todo)
+(libp2p · Helia/IPFS · OrbitDB · SvelteKit), starting from its `acl01`
+chapter: passkey identities and per-DID write permissions.
 
-A basic decentralized, local-first, peer-to-peer todo application built with **libp2p**, **IPFS**, and **OrbitDB**. This app demonstrates how modern Web3 technologies can create truly decentralized applications that work entirely in the browser.
+The playlist's export is the file the
+[**yoga-break**](https://github.com/NiKrause/yoga-break) mod for Claude Code
+reads from `~/.yoga/clips.json`: while a long tool call runs, the mod suggests
+a clip that fits the wait and opens it — in a later version through this app's
+`?clip=<id>` deep link.
 
-> 📚 **This repository is a tutorial.** Its branches — `main`, `collab01`, `passkey01`, `acl01` — are chapters that build the app up step by step, so they are kept separate rather than merged into one another. This is the `acl01` chapter (per-DID write permissions, built on `passkey01`).
+## What it does
 
-## 🚀 Live Demo
+- **Add a clip by link.** YouTube (incl. `youtu.be` and Shorts), Instagram
+  (Reels and posts), Vimeo, or any other web link. The source is detected from
+  the URL; for YouTube and Vimeo the title and thumbnail are prefilled through
+  the services' public oEmbed endpoints (no API key). The duration is typed —
+  oEmbed does not carry it. Teachers autocomplete from the playlist.
+- **Find one.** Grid of cards, filtered by teacher, tag, and "I have N minutes".
+- **Play it.** YouTube and Vimeo play inline, from `youtube-nocookie.com` and
+  `player.vimeo.com`, loaded only after the click. Instagram is a card with an
+  _Open_ button — no Instagram script is ever loaded.
+- **Deep link.** `?clip=<id>` opens a clip in the player; `?db=<address>` opens
+  a playlist. Both may be combined.
+- **clips.json.** _Export_ writes every clip of the open playlist as
+  `{ "clips": [ … ] }` in the schema below; _Import_ reads such a file back
+  (clips whose id is already there are skipped).
+- **Share.** A playlist is shared by link or QR code. Anyone with the address
+  can read it; writing needs the owner to add the friend's DID under _Write
+  permissions_ — and the owner can take it back.
+- **Done marks and minutes.** Mark a clip done; the app counts your minutes
+  today and this week. This stays in this browser, per identity — it is not
+  part of the shared playlist.
+- **Offline.** A service worker keeps the app shell; playlists and clips live
+  in IndexedDB. German and English.
 
-- **This chapter (acl01)**: https://acl01.le-space.de
-- **Main app**: https://simple-todo.le-space.de
-- **IPFS snapshot (Aleph gateway)**: https://ipfs.aleph.im/ipfs/bafybeigo5dip5jl5q6tzyp7xqtnzml25lbbw4y34kvkukgsa7au6qie37y/
-- **IPFS snapshot (dweb.link)**: https://dweb.link/ipfs/bafybeigo5dip5jl5q6tzyp7xqtnzml25lbbw4y34kvkukgsa7au6qie37y/
+## The schema
 
-The custom-domain link tracks the current deployment. The immutable CID links above are a snapshot
-of the deployment published on July 11, 2026.
+One OrbitDB document per clip, indexed by `id`. This is the shape the mod
+reads, so it is fixed:
 
-## 🔑 This Chapter: Per-DID Write Permissions (`acl01`)
+```json
+{
+  "id": "uuid",
+  "url": "https://...",
+  "source": "youtube" | "instagram" | "vimeo" | "other",
+  "title": "Shoulder Opener",
+  "teacher": "Name",
+  "durationSec": 300,
+  "tags": ["schultern", "sitzen"],
+  "addedAt": "ISO-8601",
+  "addedBy": "did:..."
+}
+```
 
-Built on `passkey01`. Passkey identities become *meaningful*: you can grant
-specific DIDs write access to a list of yours.
+`addedBy` is the identity that wrote the clip (the passkey's DID, or the
+anonymous per-browser id). The mod ignores fields it does not know; the export
+writes exactly these nine. Validation, source detection and the export live in
+[`src/lib/clips/schema.js`](src/lib/clips/schema.js), with tests.
 
-- **Public list stays public.** The mnemonic shared list from `collab01`
-  keeps `write: ['*']` — open collaboration is unchanged.
-- **Private lists are owner-only.** "Create private list" opens a new
-  database on OrbitDB's mutable `OrbitDBAccessController` with
-  `write: [your identity]`. Only you can write until you grant others.
-- **Grant / revoke at runtime.** The permissions panel lists the write DIDs
-  and lets the list admin add or remove them. The access controller is a
-  replicated OrbitDB store, so grants propagate to peers **without changing
-  the list's address**.
-- **Sharing is by address.** A private list is shared via its full
-  `/orbitdb/…` address (the "Open a shared list by address" form). Readers
-  can replicate immediately; writing needs a grant.
-- **Denied writes fail loudly.** A write from an unauthorized identity is
-  rejected inside OrbitDB's `canAppend` gate *before* anything is appended,
-  so nothing ever looks saved — the UI shows a clear "no write permission,
-  ask the owner to add your DID" message instead of crashing.
+## Architecture
 
-### Alice ↔ Bob walkthrough
+```
+browser ──libp2p (WebSocket/WebRTC)──▶ orbitdb-relay ◀── another browser
+   │                                   (introduces peers, keeps a copy)
+   ├─ Helia (IPFS blocks)  ─ IndexedDB via browser-level
+   ├─ OrbitDB
+   │    ├─ playlist registry   keyvalue, owner-only, name derived from a signature
+   │    └─ playlist …          documents(indexBy: id), OrbitDBAccessController
+   ├─ identity: WebAuthn passkey → DID (or anonymous)
+   └─ done marks, thumbnails cache, language, theme: localStorage
+```
 
-1. Alice creates a private list `alice-todos` and adds a todo. She copies its
-   `/orbitdb/…` address.
-2. Bob opens that address, sees Alice's todo (read/replication works), but
-   his own write is **denied** with a visible error.
-3. Alice pastes Bob's DID into the permissions panel and grants write.
-4. Bob writes again → success; both see both todos. The reverse (Bob owner,
-   Alice guest) works identically.
-
-### ⚠️ Relay / access-controller version compatibility
-
-The chosen access-controller type must be known to the relay/pinner that
-replicates the list. `orbitdb-relay` registers `orbitdb`,
-`orbitdb-deferred` and `todo-delegation`; this chapter uses the built-in
-`orbitdb` type, so no extra relay configuration is needed. If you switch to
-a custom controller such as
-[`@le-space/orbitdb-access-controller-delegated-todo`](https://www.npmjs.com/package/@le-space/orbitdb-access-controller-delegated-todo)
-(a token-delegation controller, a good follow-up exercise), keep its
-version in sync between the app and the relay, or replication of the
-controller's own store will fail.
-
-## 🔐 Passkey Identities (from `passkey01`)
-
-The previous chapter (`collab01`) gave every browser a random throwaway
-OrbitDB identity: entries were attributable to *a* peer, but not to *you*.
-This chapter replaces that with an opt-in **passkey-backed identity**:
-
-- **Onboarding choice** before the P2P stack starts: *create a passkey*
-  (one name, and it is only a label), *use an existing passkey* (recovery),
-  or *continue without one* (exactly the previous chapter's behaviour).
-- **WebAuthn DID provider** from
+- **Playlists** are OrbitDB `documents` databases with
+  `OrbitDBAccessController({ write: [owner] })`. Grants and revokes mutate the
+  controller's own replicated store, so the address never changes and peers
+  pick up permission changes live. A refused write throws inside OrbitDB's
+  `canAppend` before anything is appended — nothing ever looks saved.
+- **The registry** of playlists an identity knows is itself an OrbitDB
+  database, so it follows the passkey to another device. Its name is derived
+  from a signature over a fixed string, not from the DID, so that nobody who
+  has seen your DID can enumerate your playlists (simple-todo acl01).
+- **Identity** comes from
   [`@le-space/orbitdb-identity-provider-webauthn-did`](https://github.com/Le-Space/orbitdb-identity-provider-webauthn-did):
-  the DID is the passkey's own P-256 key, and OrbitDB signs entries with a
-  **secp256k1 key derived from the passkey** (PRF → HKDF-SHA256; without PRF
-  the keystore generates one instead). That key is **not encrypted**: it
-  sits in OrbitDB's keystore in this browser's IndexedDB, where anyone who
-  can read the browser's storage can read it. Creating a passkey costs four
-  WebAuthn prompts (register, `largeBlob` write, PRF, identity proof); after
-  a reload the only prompt is the `largeBlob` read of the recovery below, and
-  signing never asks. (The stricter *varsig* variant — a passkey prompt for
-  every single write — exists in the same package and is a good follow-up
-  exercise, but is not used here.)
-- **Create-or-recover flow** (`src/lib/passkey-identity.js`): identity
-  metadata is written to the authenticator's `largeBlob` when supported and
-  always to `localStorage` as fallback; recovery tries `largeBlob` first.
-  This flow currently lives here — upstreaming it into the provider package
-  is an open TODO.
-- **Visible identity**: your DID appears in the header (shortened, with a
-  copy button), and every todo shows its author resolved from
-  `entry.identity` — the field OrbitDB signs itself, so it cannot be faked
-  by writing a different name into the todo payload.
-- **Access control is unchanged** (`write: ['*']`): this chapter is only
-  about *who you are*, not yet about *who may write*. That is the next
-  chapter (`acl01`).
+  the DID is the passkey's P-256 key; OrbitDB signs with a secp256k1 key
+  derived from the passkey's PRF output. Create-or-recover
+  (largeBlob first, localStorage as fallback) is in
+  [`src/lib/passkey-identity.js`](src/lib/passkey-identity.js). Passkeys are
+  bound to the origin: one created on `localhost` does not exist on the
+  deployed domain.
+- **Networking** is simple-todo's: a relay from
+  [NiKrause/orbitdb-relay](https://github.com/NiKrause/orbitdb-relay) for
+  discovery and replication, WebRTC between browsers where possible. Nothing
+  dials before the consent screen is accepted.
+- **Third parties.** Pasting a YouTube/Vimeo link asks `youtube.com` /
+  `vimeo.com` for oEmbed. Cards load thumbnails from `i.ytimg.com` /
+  `vimeocdn.com` (Vimeo's, once per clip, cached in localStorage). Playing
+  loads the embed. The consent screen says all of this.
 
-### The name you type is a label, not your identity
+### From simple-todo
 
-The onboarding form asks for one name, and nothing depends on it. A passkey
-carries two human-readable fields (`user.name` and `displayName`) that exist
-only so the browser's passkey picker has something to show. What identifies
-the credential is the **user handle**, 64 random bytes the identity provider
-generates — and your DID comes from the credential's public key, not from
-either of them. Two people on the same device may type the same name and
-still get two separate identities.
+Kept: build setup, libp2p/Helia/OrbitDB wiring, relay bootstrap and
+discovery, passkey identity, the access-controller permissions panel, the
+playlist registry, the consent dialog, theming (Le-Space tokens as CSS custom
+properties), the Playwright setup with a local relay, the service worker from
+`main`. Replaced: the todo domain (keyvalue todos, the public three-word
+mnemonic list) with playlists of clips, plus oEmbed, export/import, deep links
+and done marks. Persistence is always on here — simple-todo makes it a choice
+because its default list is public.
 
-That is worth stating because it was not always true. While the handle was
-derived from the typed name, an authenticator — which keeps one credential
-per (origin, handle) — silently **replaced** the earlier passkey when a
-second person used the same name, taking the DID and everything signed under
-it with it
-([provider #45](https://github.com/Le-Space/orbitdb-identity-provider-webauthn-did/issues/45)).
-The WebAuthn spec says the handle must not contain personal data such as a
-username or e-mail address, and should be random, for exactly this reason.
-
-### ⚠️ Passkeys are bound to the origin (rpId)
-
-A WebAuthn credential is scoped to the domain that created it. A passkey
-registered on `http://localhost:5173` does **not** exist on
-`https://simple-todo.le-space.de`, and a passkey created on one IPFS
-gateway (`dweb.link`) is invisible on another (`ipfs.aleph.im`) — even for
-the identical app build. For a local-first app distributed through many
-gateways this is a real constraint: your DID is only portable across
-devices via passkey sync (iCloud Keychain, Google Password Manager, …), not
-across origins. Pin one canonical domain if stable identities matter.
-
-## 🎯 What is this?
-
-This is a **browser-only** local-first peer-to-peer todo application that operates without any traditional server infrastructure. It connects directly to other browsers and mobile devices through peer-to-peer connections, creating a truly decentralized experience. So far, a LibP2P signaling node is necessary to connect the peers, and in this version it also stores the todos since this browser version works with MemoryStorage only instead of local IPFSStorage (e.g. LevelBlockstore).
-
-### Main Branch Scope
-
-This branch extends the basic `main` tutorial with a three-word Spanish shared-list mnemonic, for example `luna-camino-verde`. The normalized mnemonic is the OrbitDB database name: two browsers enter the same words to open and replicate the same list without exchanging a full OrbitDB address. The mnemonic is only a convenient public share code—not a password, recovery phrase, encryption key, or access-control mechanism. Anyone who knows or guesses it can discover and edit the public writable list.
-
-> **Collaboration examples:** [`collab01`](https://github.com/NiKrause/simple-todo/tree/collab01) demonstrates mnemonic-based shared lists.
-
-### Key Features
-
-- ✅ **No Server Required** - PWA runs in browser, desktop or mobile.
-- ✅ **Local Data** - Data is stored in your browser's level storage and replicated via OrbitDB and IPFS
-- ✅ **Peer-to-Peer Communication** - Browsers connect directly via WebRTC (with help of libp2p signaling nodes)
-- ✅ **Real-time Synchronization** - Changes appear instantly across all peers
-
-## 🎯 How to Test
-
-1. **Open Two Browser Windows** - You need at least two browser instances, a mobile device, or ask another distant person to open the app
-2. **Load the Same URL** - All app users should load the same app URL
-3. **Choose the Shared List** - Copy the three-word mnemonic from the first browser and paste it into the second
-4. **Accept Consent and Open** - Check all consent boxes and select **Open shared list**
-5. **Wait for Connection** - The app will automatically discover and connect peers
-6. **Add Todos** - Create todos in one browser and watch them appear in the other
-
-### Try this chapter (per-DID write permissions)
-
-The mnemonic list above stays public. To exercise access control, create a
-**private list** and share it by address:
-
-1. In browser A (owner), pick **Create a passkey** during onboarding, then
-   click **Create private list**. Add a todo and copy the shown
-   `/orbitdb/…` address.
-2. In browser B (guest), create a *different* passkey, paste the address into
-   **Open a shared list by address**, and open it. You see the owner's todo,
-   but adding one is **denied** with a visible error.
-3. In browser A, copy browser B's **Passkey DID** (its header badge) into the
-   **Write permissions** panel and click **Add DID**.
-4. In browser B, add the todo again → it succeeds and both browsers converge.
-   Owner and guest roles are symmetric — try it the other way around too.
-
-See the full [Alice ↔ Bob walkthrough](#alice--bob-walkthrough) above for the
-same flow described step by step.
-
-## 📚 Documentation
-
-For comprehensive guides on how this app works, implementation details, and reusable components:
-
-**[📖 Tutorial](./docs/TUTORIAL.md)**
-
-The tutorial covers:
-
-- Step-by-Step implementation guide
-- Architecture overview
-- Testing procedures
-- Troubleshooting guide
-- Security considerations
-
-**[🔧 Reusable Components](./docs/)**
-
-- **[StorachaIntegration](./docs/StorachaIntegration.md)** - Complete Storacha/Web3.Storage integration component for backing up OrbitDB databases to decentralized storage
-
-## 🛠️ Quick Start
+## Development
 
 ```bash
-# Clone repository
-git clone https://github.com/NiKrause/simple-todo.git
-# checkout main branch
-git checkout main
-
-# install dependencies and start the development server
 pnpm install
 pnpm dev
 ```
 
-## 🛰️ Local Relay
-
-In development the app reads `VITE_RELAY_BOOTSTRAP_ADDR_DEV` from `.env`. If that variable is not set, it falls back to a hardcoded localhost relay address, so the safest local workflow is:
-
-1. Start an `orbitdb-relay` process.
-2. Copy its WebSocket multiaddr into `.env`.
-3. Start or restart the Vite dev server.
-
-Install and run the published npm package:
+In development the app dials `VITE_RELAY_BOOTSTRAP_ADDR_DEV` from `.env`
+(see `.env.example`). For a local relay:
 
 ```bash
 npm install -g orbitdb-relay
-
-ENABLE_GENERAL_LOGS=1 \
-RELAY_LISTEN_IPV4=127.0.0.1 \
-RELAY_DISABLE_IPV6=true \
-RELAY_DISABLE_QUIC=true \
-RELAY_DISABLE_WEBRTC=true \
-DATASTORE_PATH=/tmp/simple-todo-orbitdb-relay \
-orbitdb-relay --test
+RELAY_LISTEN_IPV4=127.0.0.1 RELAY_DISABLE_IPV6=true RELAY_DISABLE_QUIC=true \
+RELAY_DISABLE_WEBRTC=true DATASTORE_PATH=/tmp/yoga-clips-relay orbitdb-relay --test
+curl -s http://127.0.0.1:9090/multiaddrs
 ```
 
-The relay exposes helper routes on `http://127.0.0.1:9090`. In another terminal, fetch the browser-dialable WebSocket address:
+Put the printed `/ws` address into `.env` as `VITE_RELAY_BOOTSTRAP_ADDR_DEV`
+and restart `pnpm dev`.
+
+Tests: see [docs/TESTING.md](docs/TESTING.md). The two-browser E2E (Alice
+shares, Bob is refused, Alice grants, Bob writes, the export fits the schema,
+the deep link plays) runs against a local relay:
 
 ```bash
-curl -s http://127.0.0.1:9090/multiaddrs | node -e "let d=''; process.stdin.on('data', c => d += c); process.stdin.on('end', () => { const j = JSON.parse(d); console.log(j.best.websocket || j.byTransport.websocket[0]); });"
+pnpm exec playwright test e2e/clips-sharing.spec.js --project=chromium
 ```
 
-Use exactly one printed `/ws` address. Do not paste the raw TCP address on port `9091`, and do not include quotes, commas, or multiple addresses in one value.
+## Deployment
 
-Put the printed address in `.env`. If you copied `.env.example`, replace the existing `VITE_RELAY_BOOTSTRAP_ADDR_DEV` value:
+`.github/workflows/deploy.yml` runs the unit and E2E tests and publishes the
+static build to Aleph IPFS, linking `yoga-clips.le-space.de` — the same path
+simple-todo takes. It needs the `ALEPH_PRIVATE_KEY` secret.
 
-```bash
-VITE_RELAY_BOOTSTRAP_ADDR_DEV=/ip4/127.0.0.1/tcp/9092/ws/p2p/<relay-peer-id>
-```
+## Privacy, in short
 
-Then start the app:
+No server of ours, no account. A playlist is readable by anyone who has its
+address, including the relay that stores it: links, titles, teachers, tags.
+Nothing is encrypted. Which clips you did, and when, never leaves your
+browser. The consent screen states what is contacted and when.
 
-```bash
-pnpm dev
-```
+## License
 
-If you change `.env` while Vite is already running, restart `pnpm dev` so the new relay address is loaded.
-
-## 🔧 Technologies Used
-
-- **libp2p** - Peer-to-peer networking stack
-- **IPFS** - Distributed file system (via Helia)
-- **OrbitDB** - Decentralized database
-- **Svelte** - Frontend framework
-- **WebRTC** - Direct browser-to-browser communication
-
-## ⚠️ Important Notes
-
-- This is a **demo application** for educational purposes
-- Data is stored in a **global unencrypted database** visible to all users
-- **No privacy protection** - all data is publicly visible
-- **Not suitable for production use** without additional security measures
-
-## 📄 License
-
-This project is open source and available under the [LICENSE](./LICENSE) file.
-
----
+[LICENSE](./LICENSE) — the same as simple-todo.

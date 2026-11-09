@@ -5,12 +5,7 @@ import { createLibp2p } from 'libp2p';
 import { createHeliaLight } from 'helia';
 import { withBitswap } from '@helia/bitswap';
 import { withLibp2p } from '@helia/libp2p';
-import {
-	createOrbitDB,
-	IPFSAccessController,
-	Identities,
-	useIdentityProvider
-} from '@orbitdb/core';
+import { createOrbitDB, Identities, useIdentityProvider } from '@orbitdb/core';
 import { OrbitDBWebAuthnIdentityProviderFunction } from '@le-space/orbitdb-identity-provider-webauthn-did';
 import * as dagCbor from '@ipld/dag-cbor';
 import * as dagJson from '@ipld/dag-json';
@@ -18,9 +13,14 @@ import * as json from 'multiformats/codecs/json';
 import { sha512 } from 'multiformats/hashes/sha2';
 import { multiaddr } from '@multiformats/multiaddr';
 import { createLibp2pConfig } from './libp2p-config.js';
-import { initializeDatabase, todoDBAddressStore, todosStore } from './db-actions.js';
+import {
+	initializeDatabase,
+	playlistAddressStore,
+	playlistDBStore,
+	resetClipStores
+} from './clips/store.js';
 import { getWebRTCEnabled, setWebRTCEnabled, webrtcEnabledStore } from './webrtc-settings.js';
-import { getTodoDatabaseName } from './default-todo-database.js';
+import { PERSISTENT_STORAGE_PATHS } from './storage-paths.js';
 import { normalizeDiscoveredMultiaddrs } from './multiaddr-utils.js';
 
 export { setWebRTCEnabled, webrtcEnabledStore };
@@ -52,14 +52,14 @@ const INITIALIZATION_STEP_DEFINITIONS = [
 			'Loads or creates the persistent OrbitDB identity and initializes OrbitDB using the Helia node.'
 	},
 	{
-		label: 'Database + sync',
+		label: 'Playlists',
 		description:
-			'Opens the shared todo database, loads its local operation log and starts OrbitDB pubsub synchronization.'
+			'Opens your playlist registry and the playlist you used last, and starts OrbitDB pubsub synchronization.'
 	},
 	{
-		label: 'Local todos',
+		label: 'Local clips',
 		description:
-			'Connects the local todo store and starts hydrating it from OrbitDB in the background without blocking the application.'
+			'Hydrates the clips from the local OrbitDB log in the background without blocking the application.'
 	}
 ];
 
@@ -101,10 +101,7 @@ let peerId = /** @type {string | null} */ (null);
  * @type {any | null}
  */
 let activePasskeyCredential = null;
-let todoDB = /** @type {any} */ (null);
-let defaultTodoDbAddress = '';
-let activeTodoDatabaseName = '';
-const ORBITDB_IDENTITY_STORAGE_KEY = 'simpleTodo.orbitdbIdentityId';
+const ORBITDB_IDENTITY_STORAGE_KEY = 'yogaClips.orbitdbIdentityId';
 const MANUAL_CONNECT_STABILIZATION_MS = 3_000;
 const RELAY_PING_TIMEOUT_MS = 10_000;
 const DISCOVERY_DIAL_PERIODIC_RETRY_MS = 2_000;
@@ -121,20 +118,44 @@ let discoveryDialRetryInterval = null;
 /** @type {ReturnType<typeof setInterval> | null} */
 
 /**
+ * Level-backed stores, so blocks survive a reload.
+ *
+ * simple-todo makes persistence a choice on its consent screen, and defaults
+ * to memory because its default list is public. Here every playlist is
+ * somebody's own, and a clip collection that forgets itself on reload is not
+ * local-first — so IndexedDB (through `browser-level`) is the only mode.
+ * Imported lazily all the same: it keeps the eager bundle the size it was.
+ *
+ * @returns {Promise<{ blockstore: any, datastore: any }>}
+ */
+async function createPersistentStores() {
+	const [{ LevelBlockstore }, { LevelDatastore }] = await Promise.all([
+		import('blockstore-level'),
+		import('datastore-level')
+	]);
+	return {
+		blockstore: new LevelBlockstore(PERSISTENT_STORAGE_PATHS.blockstore),
+		datastore: new LevelDatastore(PERSISTENT_STORAGE_PATHS.datastore)
+	};
+}
+
+/**
  * @param {any} libp2pNode
+ * @param {{ blockstore: any, datastore: any }} stores
  * @returns {any}
  */
-function createHeliaWithLibp2p(libp2pNode) {
+function createHeliaWithLibp2p(libp2pNode, stores) {
 	return withBitswap(
 		withLibp2p(
 			// Bitswap only, deliberately. `withHTTP` used to wrap this: it ships
 			// three public gateways and Helia asks them for any block bitswap does
-			// not produce. Nothing here can be there — todos are OrbitDB entries
+			// not produce. Nothing here can be there — clips are OrbitDB entries
 			// written in a browser, so the request can only fail while announcing
 			// the CID to three strangers.
 			createHeliaLight({
 				codecs: [dagCbor, dagJson, json],
-				hashers: [sha512]
+				hashers: [sha512],
+				...stores
 			}),
 			libp2pNode
 		)
@@ -145,9 +166,7 @@ function createHeliaWithLibp2p(libp2pNode) {
  * Initialize the P2P network after user consent
  * This function should be called only after the user has accepted the consent modal
  */
-export async function initializeP2P(
-	options = /** @type {{ todoDbAddress?: string, todoDbName?: string, passkeyCredential?: any }} */ ({})
-) {
+export async function initializeP2P(options = /** @type {{ passkeyCredential?: any }} */ ({})) {
 	if (Object.prototype.hasOwnProperty.call(options, 'passkeyCredential')) {
 		activePasskeyCredential = options.passkeyCredential ?? null;
 	}
@@ -174,25 +193,19 @@ export async function initializeP2P(
 
 		// Create Helia (IPFS) instance
 		setInitializationProgress(2);
-		helia = await createHeliaWithLibp2p(libp2p).start();
-		console.log(`✅ Helia created`);
+		helia = await createHeliaWithLibp2p(libp2p, await createPersistentStores()).start();
+		console.log('✅ Helia created (IndexedDB via Level)');
 
 		// Create OrbitDB instance
 		setInitializationProgress(3);
 		console.log('🛬 Creating OrbitDB instance...');
 		orbitdb = await createOrbitDBInstance(helia);
 		setInitializationProgress(4);
-		todoDB = await openInitialTodoDatabase(options.todoDbAddress, options.todoDbName);
-
-		console.log('✅ Database opened successfully with OrbitDBAccessController:', {
-			address: todoDB.address,
-			type: todoDB.type,
-			accessController: todoDB.access
-		});
-
-		// Initialize database stores and actions
+		// The registry and the last playlist; what they open is the store's
+		// business (clips/store.js), p2p.js only hands over the node.
+		await initializeDatabase(orbitdb);
 		setInitializationProgress(5);
-		await initializeDatabase(orbitdb, todoDB);
+		console.log('✅ Playlists ready:', { address: get(playlistAddressStore) || '(none open)' });
 
 		// Mark initialization as complete
 		initializationStore.set({
@@ -218,21 +231,11 @@ export async function initializeP2P(
 
 /**
  * Restart libp2p, Helia and OrbitDB with the current transport settings.
- * The active Todo DB address is preserved when one is available.
+ * The store remembers the active playlist and reopens it.
  */
-export async function restartP2P(options = /** @type {{ todoDbName?: string }} */ ({})) {
-	const activeTodoDbAddress = get(todoDBAddressStore);
-	const currentDatabaseName = activeTodoDatabaseName;
-	const shouldPreserveActiveTodoDb =
-		!options.todoDbName &&
-		Boolean(activeTodoDbAddress) &&
-		activeTodoDbAddress !== defaultTodoDbAddress;
-
+export async function restartP2P() {
 	await stopP2P();
-	await initializeP2P({
-		todoDbAddress: shouldPreserveActiveTodoDb ? activeTodoDbAddress : '',
-		todoDbName: options.todoDbName || currentDatabaseName
-	});
+	await initializeP2P();
 }
 
 async function stopP2P() {
@@ -241,51 +244,17 @@ async function stopP2P() {
 	peerIdStore.set(null);
 	ownDidStore.set(null);
 	peerId = null;
-	activeTodoDatabaseName = '';
 	stopDiscoveryDialRetryInterval();
 	discoveredPeers.clear();
 	relayReservationAttempts.clear();
 
-	const resources = [todoDB, orbitdb, helia, libp2p];
-	todoDB = null;
+	const resources = [get(playlistDBStore), orbitdb, helia, libp2p];
+	resetClipStores();
 	orbitdb = null;
 	helia = null;
 	libp2p = null;
 
 	await Promise.allSettled(resources.map((resource) => resource?.stop?.() ?? resource?.close?.()));
-
-	todosStore.set([]);
-}
-
-/**
- * @param {string | undefined} address
- * @param {string | undefined} databaseName
- */
-async function openInitialTodoDatabase(address, databaseName) {
-	const normalizedAddress = address?.trim() ?? '';
-
-	if (normalizedAddress.startsWith('/orbitdb/')) {
-		activeTodoDatabaseName = '';
-		return orbitdb.open(normalizedAddress, {
-			type: 'keyvalue',
-			sync: true
-		});
-	}
-
-	const canonicalDatabaseName = getTodoDatabaseName(databaseName || '');
-	activeTodoDatabaseName = canonicalDatabaseName;
-	const defaultTodoDB = await orbitdb.open(canonicalDatabaseName, {
-		type: 'keyvalue', //Stores data as key-value pairs supports basic operations: put(), get(), delete()
-		create: true, // Allows the database to be created if it doesn't exist
-		sync: true, // Enables automatic synchronization with other peers
-		// The mnemonic default list stays public (write: ['*']) so the shared-list
-		// collaboration from collab01 keeps working. Access-controlled lists are
-		// created explicitly as *private lists* (see createPrivateTodoList).
-		AccessController: IPFSAccessController({ write: ['*'] })
-	});
-
-	defaultTodoDbAddress = defaultTodoDB.address?.toString?.() ?? '';
-	return defaultTodoDB;
 }
 
 /**
@@ -297,7 +266,13 @@ async function openInitialTodoDatabase(address, databaseName) {
 async function createOrbitDBInstance(heliaNode) {
 	if (!activePasskeyCredential) {
 		ownDidStore.set(null);
-		return createOrbitDB({ ipfs: heliaNode, id: getOrCreateOrbitDBIdentityId() });
+		return createOrbitDB(
+			/** @type {any} */ ({
+				ipfs: heliaNode,
+				id: getOrCreateOrbitDBIdentityId(),
+				directory: PERSISTENT_STORAGE_PATHS.orbitdb
+			})
+		);
 	}
 
 	// Register the provider type once so Identities can verify webauthn
@@ -329,7 +304,14 @@ async function createOrbitDBInstance(heliaNode) {
 	});
 	ownDidStore.set(identity.id);
 	console.log(`✅ Passkey identity ready: ${identity.id}`);
-	return createOrbitDB({ ipfs: heliaNode, identities, identity });
+	return createOrbitDB(
+		/** @type {any} */ ({
+			ipfs: heliaNode,
+			identities,
+			identity,
+			directory: PERSISTENT_STORAGE_PATHS.orbitdb
+		})
+	);
 }
 
 /**
@@ -353,18 +335,17 @@ function getOrCreateOrbitDBIdentityId() {
 
 function createOrbitDBIdentityId() {
 	if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') {
-		return `simple-todo-${crypto.randomUUID()}`;
+		return `yoga-clips-${crypto.randomUUID()}`;
 	}
 
-	return `simple-todo-${Date.now()}-${Math.random().toString(36).slice(2)}`;
+	return `yoga-clips-${Date.now()}-${Math.random().toString(36).slice(2)}`;
 }
 
 function getReadOnlyDiagnostics() {
 	return {
 		getPeerId: () => peerId,
-		getDatabaseName: () => activeTodoDatabaseName,
-		getDatabaseAddress: () => get(todoDBAddressStore),
-		getDatabasePeers: () => Array.from(todoDB?.peers ?? [], String),
+		getDatabaseAddress: () => get(playlistAddressStore),
+		getDatabasePeers: () => Array.from(get(playlistDBStore)?.peers ?? [], String),
 		getMultiaddrs: () => {
 			const ownAddrs =
 				libp2p?.getMultiaddrs?.().map((/** @type {any} */ addr) => addr.toString()) ?? [];
@@ -412,9 +393,9 @@ function getReadOnlyDiagnostics() {
 function installPublicDiagnostics() {
 	if (typeof window === 'undefined') return;
 
-	/** @type {Window & typeof globalThis & { __simpleTodoDiagnostics?: Record<string, unknown> }} */ (
+	/** @type {Window & typeof globalThis & { __yogaClipsDiagnostics?: Record<string, unknown> }} */ (
 		window
-	).__simpleTodoDiagnostics = Object.freeze(getReadOnlyDiagnostics());
+	).__yogaClipsDiagnostics = Object.freeze(getReadOnlyDiagnostics());
 }
 
 function installE2ETestHooks() {
@@ -422,9 +403,9 @@ function installE2ETestHooks() {
 
 	const diagnostics = getReadOnlyDiagnostics();
 
-	/** @type {Window & typeof globalThis & { __simpleTodoE2E?: Record<string, unknown> }} */ (
+	/** @type {Window & typeof globalThis & { __yogaClipsE2E?: Record<string, unknown> }} */ (
 		window
-	).__simpleTodoE2E = {
+	).__yogaClipsE2E = {
 		...diagnostics,
 		getConnectionCount: () => libp2p?.getConnections?.().length ?? 0,
 		getConnectedPeerIds: () =>

@@ -1,11 +1,12 @@
 <script>
-	// Write-permission management for the active todo list (acl01 chapter).
-	// Backed by OrbitDBAccessController: grants/revokes mutate the controller's
-	// own replicated keyvalue store, so the DB address never changes and peers
-	// pick up permission changes live.
+	// Write-permission management for the open playlist (simple-todo acl01,
+	// unchanged in mechanism). Backed by OrbitDBAccessController: grants and
+	// revokes mutate the controller's own replicated keyvalue store, so the
+	// playlist's address never changes and peers pick up changes live.
 	import { onDestroy } from 'svelte';
-	import { todoDBStore } from './db-actions.js';
-	import { ownDidStore } from './p2p.js';
+	import { _ } from '$lib/i18n/index.js';
+	import { playlistDBStore } from './clips/store.js';
+	import { ownDidStore } from './p2p-stores.js';
 
 	/** @type {string[]} */
 	let writeDids = [];
@@ -18,7 +19,7 @@
 	/** @type {(() => void) | null} */
 	let detachUpdateListener = null;
 
-	const unsubscribe = todoDBStore.subscribe((db) => {
+	const unsubscribe = playlistDBStore.subscribe((db) => {
 		if (db === currentDb) return;
 		detachUpdateListener?.();
 		currentDb = db;
@@ -66,7 +67,9 @@
 			newDid = '';
 			await refresh();
 		} catch (error) {
-			errorMessage = `Grant failed: ${error instanceof Error ? error.message : String(error)}`;
+			errorMessage = $_('permissions.grantFailed', {
+				values: { reason: error instanceof Error ? error.message : String(error) }
+			});
 		} finally {
 			busy = false;
 		}
@@ -80,68 +83,81 @@
 			await currentDb.access.revoke('write', did);
 			await refresh();
 		} catch (error) {
-			errorMessage = `Revoke failed: ${error instanceof Error ? error.message : String(error)}`;
+			errorMessage = $_('permissions.revokeFailed', {
+				values: { reason: error instanceof Error ? error.message : String(error) }
+			});
 		} finally {
 			busy = false;
 		}
 	}
+
+	/** @param {string} did */
+	function shortDid(did) {
+		return did.length > 30 ? `${did.slice(0, 18)}…${did.slice(-8)}` : did;
+	}
 </script>
 
 {#if currentDb?.access?.grant}
-	<section
-		class="mt-4 rounded-lg border border-gray-200 p-4 dark:border-gray-700"
+	<details
+		class="mt-4 rounded-lg border border-border bg-surface shadow-sm"
 		data-testid="permissions-panel"
 	>
-		<h2 class="text-lg font-semibold text-heading">Write permissions</h2>
-		<p class="mt-1 text-xs text-faint">
-			DIDs allowed to write to this list. Only list admins (the creator) can grant or revoke.
-		</p>
+		<summary class="cursor-pointer px-4 py-3 text-sm font-semibold text-heading">
+			{$_('permissions.heading')}
+			<span class="ml-1 text-xs font-normal text-faint">({writeDids.length})</span>
+		</summary>
+		<div class="border-t border-border px-4 py-3">
+			<p class="text-xs text-faint">{$_('permissions.hint')}</p>
 
-		<ul class="mt-3 space-y-1">
-			{#each writeDids as did (did)}
-				<li
-					class="flex items-center justify-between gap-2 text-xs"
-					data-testid="permission-entry"
-					data-did={did}
-				>
-					<code class="truncate rounded bg-surface-2 px-1" title={did}>
-						{did.length > 30 ? `${did.slice(0, 18)}…${did.slice(-8)}` : did}
-						{#if did === $ownDidStore}<span class="text-emerald-600"> (you)</span>{/if}
-					</code>
-					<button
-						type="button"
-						on:click={() => revoke(did)}
-						disabled={busy}
-						class="rounded border border-red-300 px-1.5 py-0.5 text-red-600 hover:bg-red-50 disabled:opacity-50 dark:hover:bg-red-950"
-						data-testid="permission-revoke"
+			<ul class="mt-3 space-y-1">
+				{#each writeDids as did (did)}
+					<li
+						class="flex items-center justify-between gap-2 text-xs"
+						data-testid="permission-entry"
+						data-did={did}
 					>
-						Remove
-					</button>
-				</li>
-			{/each}
-		</ul>
+						<code class="truncate rounded bg-surface-2 px-1" title={did}>
+							{shortDid(did)}
+							{#if did === $ownDidStore}<span class="text-identity-600">
+									{$_('permissions.you')}</span
+								>{/if}
+						</code>
+						<button
+							type="button"
+							on:click={() => revoke(did)}
+							disabled={busy}
+							class="rounded border border-danger/40 px-1.5 py-0.5 text-danger hover:bg-danger/10 disabled:opacity-50"
+							data-testid="permission-revoke"
+						>
+							{$_('permissions.remove')}
+						</button>
+					</li>
+				{/each}
+			</ul>
 
-		<div class="mt-3 flex gap-2">
-			<input
-				type="text"
-				bind:value={newDid}
-				placeholder="did:key:… of the identity to allow"
-				data-testid="permission-did-input"
-				class="min-w-0 flex-1 rounded-md border border-gray-300 px-2 py-1.5 font-mono text-xs"
-			/>
-			<button
-				type="button"
-				on:click={grant}
-				disabled={busy || !newDid.trim()}
-				data-testid="permission-add"
-				class="rounded-md bg-cyan-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-cyan-700 disabled:opacity-50"
-			>
-				Add DID
-			</button>
+			<div class="mt-3 flex gap-2">
+				<input
+					type="text"
+					bind:value={newDid}
+					placeholder={$_('permissions.didPlaceholder')}
+					data-testid="permission-did-input"
+					class="min-w-0 flex-1 rounded-md border border-border px-2 py-1.5 font-mono text-xs"
+					on:keydown={(event) => event.key === 'Enter' && !busy && grant()}
+				/>
+				<button
+					type="button"
+					on:click={grant}
+					disabled={busy || !newDid.trim()}
+					data-testid="permission-add"
+					class="rounded-md bg-cyan-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-cyan-700 disabled:opacity-50"
+				>
+					{$_('permissions.add')}
+				</button>
+			</div>
+
+			{#if errorMessage}
+				<p class="mt-2 text-xs text-danger" data-testid="permission-error">{errorMessage}</p>
+			{/if}
 		</div>
-
-		{#if errorMessage}
-			<p class="mt-2 text-xs text-red-600" data-testid="permission-error">{errorMessage}</p>
-		{/if}
-	</section>
+	</details>
 {/if}

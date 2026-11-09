@@ -1,52 +1,56 @@
 <script>
 	import { onMount } from 'svelte';
 	import { _ } from '$lib/i18n/index.js';
-	import { peerIdStore, initializationStore, ownDidStore } from '$lib/p2p-stores.js';
+	import { peerIdStore, initializationStore, ownDidStore, libp2pStore } from '$lib/p2p-stores.js';
 	import PasskeyOnboarding from '$lib/PasskeyOnboarding.svelte';
 	import DidBadge from '$lib/DidBadge.svelte';
 	import { createPasskeyCredential, recoverPasskeyCredential } from '$lib/passkey-identity.js';
 	import {
-		todosStore,
-		todoDBAddressStore,
-		activeListStore,
-		addTodo,
-		deleteTodo,
-		toggleTodoComplete
-	} from '$lib/db-actions.js';
+		orbitdbStore,
+		clipsStore,
+		teachersStore,
+		tagsStore,
+		activePlaylistStore,
+		requestedClipStore,
+		removeClip
+	} from '$lib/clips/store.js';
+	import {
+		loadDoneLog,
+		saveDoneLog,
+		markDone,
+		unmarkLast,
+		practiceStats,
+		doneToday
+	} from '$lib/clips/done.js';
 	import { formatVersions } from '$lib/build-info.js';
 	import ConsentModal from '$lib/ConsentModal.svelte';
 	import SocialIcons from '$lib/SocialIcons.svelte';
 	import ThemeToggle from '$lib/ThemeToggle.svelte';
+	import LanguageSwitcher from '$lib/LanguageSwitcher.svelte';
 	import LeSpaceLogo from '$lib/LeSpaceLogo.svelte';
 	import ToastNotification from '$lib/ToastNotification.svelte';
 	import P2PStatusNav from '$lib/P2PStatusNav.svelte';
 	import ErrorAlert from '$lib/ErrorAlert.svelte';
-	import AddTodoForm from '$lib/AddTodoForm.svelte';
-	import TodoList from '$lib/TodoList.svelte';
 	import ConnectedPeers from '$lib/ConnectedPeers.svelte';
 	import PeerIdCard from '$lib/PeerIdCard.svelte';
 	import OwnMultiaddrs from '$lib/OwnMultiaddrs.svelte';
-	import SharedListSelector from '$lib/SharedListSelector.svelte';
-	import SharedListDetails from '$lib/SharedListDetails.svelte';
-	import PermissionsPanel from '$lib/PermissionsPanel.svelte';
-	import OpenDatabaseForm from '$lib/OpenDatabaseForm.svelte';
-	import NewPrivateListButton from '$lib/NewPrivateListButton.svelte';
-	import ListSwitcher from '$lib/ListSwitcher.svelte';
-	import {
-		SPANISH_MNEMONIC_STORAGE_KEY,
-		generateSpanishMnemonic,
-		isValidSpanishMnemonic,
-		normalizeSpanishMnemonic
-	} from '$lib/spanish-mnemonic.js';
 	import ManualConnectForm from '$lib/ManualConnectForm.svelte';
-	import { libp2pStore } from '$lib/p2p-stores.js';
+	import PlaylistPanel from '$lib/PlaylistPanel.svelte';
+	import SharePanel from '$lib/SharePanel.svelte';
+	import PermissionsPanel from '$lib/PermissionsPanel.svelte';
+	import AddClipForm from '$lib/AddClipForm.svelte';
+	import ClipFilters from '$lib/ClipFilters.svelte';
+	import ClipGrid from '$lib/ClipGrid.svelte';
+	import ClipPlayer from '$lib/ClipPlayer.svelte';
+	import TransferPanel from '$lib/TransferPanel.svelte';
+	import PracticeStats from '$lib/PracticeStats.svelte';
 
 	/** @typedef {'default' | 'success' | 'error' | 'warning'} ToastType */
-	/** @typedef {{ detail: { text: string } }} AddTodoEvent */
-	/** @typedef {{ detail: { key: string } }} TodoActionEvent */
+	/** @typedef {import('$lib/clips/schema.js').Clip} Clip */
 
 	const CONSENT_KEY = `consentAccepted@${typeof __APP_VERSION__ !== 'undefined' ? __APP_VERSION__ : '0.0.0'}`;
-	const IDENTITY_MODE_KEY = 'simpleTodo.identityMode';
+	const IDENTITY_MODE_KEY = 'yogaClips.identityMode';
+	const DEEP_LINK_PATIENCE_MS = 20_000;
 
 	/** @type {'create' | 'existing' | 'anonymous'} */
 	let identityMode = 'anonymous';
@@ -56,48 +60,86 @@
 	let toastMessage = null;
 	/** @type {ToastType} */
 	let toastType = 'default';
+	let toastDuration = 3000;
+	/** @type {ReturnType<typeof setTimeout> | null} */
+	let toastTimer = null;
 	/** @type {string | null} */
 	let error = null;
 	/** @type {string | null} */
 	let notice = null;
-	/** @type {string | null} */
-	let myPeerId = null;
-	let selectedMnemonic = '';
-	let activeMnemonic = '';
-	$: mnemonicValid = isValidSpanishMnemonic(selectedMnemonic);
 
-	// Modal state
 	let showModal = true;
 	let rememberDecision = false;
 
+	// Filters
+	let filterTeacher = '';
+	let filterTag = '';
+	let filterMinutes = 0;
+
+	// Player
+	/** @type {Clip | null} */
+	let playing = null;
+
+	// Done marks, scoped to the identity that is signed in.
+	$: identityId = String($ownDidStore ?? $orbitdbStore?.identity?.id ?? '');
+	/** @type {import('$lib/clips/done.js').DoneLog} */
+	let doneLog = {};
+	let doneLogFor = '';
+	$: if (identityId !== doneLogFor) {
+		doneLogFor = identityId;
+		doneLog = identityId ? loadDoneLog(identityId) : {};
+	}
+	$: stats = practiceStats(doneLog, $clipsStore);
+
+	$: filtered = $clipsStore.filter(
+		(clip) =>
+			(!filterTeacher || clip.teacher === filterTeacher) &&
+			(!filterTag || clip.tags.includes(filterTag)) &&
+			(filterMinutes <= 0 || clip.durationSec <= filterMinutes * 60)
+	);
+
+	// A `?clip=<id>` link: open the player as soon as the clip is here. It may
+	// take a moment — a guest's copy arrives from the relay — so this waits, and
+	// says so if the clip never turns up.
+	/** @type {ReturnType<typeof setTimeout> | null} */
+	let deepLinkTimer = null;
+	$: resolveDeepLink($requestedClipStore, $clipsStore, $initializationStore.isInitialized);
+
 	/**
-	 * A choice the person made that cannot be carried out — no passkey behind
-	 * "use an existing one", an unnamed new one. Separated from a genuine
-	 * startup failure because the two need different words: this one is
-	 * answered by choosing differently, and prefixing it with "P2P" only hides
-	 * that.
+	 * @param {string | null} wanted
+	 * @param {Clip[]} clips
+	 * @param {boolean} ready
 	 */
+	function resolveDeepLink(wanted, clips, ready) {
+		if (!wanted) return;
+		const found = clips.find((clip) => clip.id === wanted);
+		if (found) {
+			playing = found;
+			requestedClipStore.set(null);
+			if (deepLinkTimer) clearTimeout(deepLinkTimer);
+			deepLinkTimer = null;
+			return;
+		}
+		if (deepLinkTimer || !ready) return;
+		deepLinkTimer = setTimeout(() => {
+			deepLinkTimer = null;
+			if (!$requestedClipStore) return;
+			requestedClipStore.set(null);
+			showToast($_('player.notFound'), 'warning', 8000);
+		}, DEEP_LINK_PATIENCE_MS);
+	}
+
 	class IdentityChoiceError extends Error {}
 
 	/**
-	 * The passkey binds the identity only as far as the authenticator lets it.
-	 *
-	 * `ensureDerivedSigningKey` derives the OrbitDB signing key from the
-	 * credential's PRF output, which is what makes the same passkey produce the
-	 * same identity document everywhere. Without PRF it is never fatal: the
-	 * keystore generates its own key, the DID stays the same, and the public
-	 * key differs per device — two identity documents under one DID. The
-	 * provider tests that fallback as intended behaviour and logs one debug
-	 * line, so nothing reaches the person it affects. This does.
-	 *
-	 * Once per credential: it describes the authenticator, and the answer will
-	 * not change on the next start.
-	 *
+	 * The passkey binds the identity only as far as the authenticator lets it;
+	 * without PRF the same passkey yields a different identity on another
+	 * device. Said once per credential — see simple-todo passkey01.
 	 * @param {any} credential
 	 */
 	function warnIfIdentityCannotTravel(credential) {
 		if (!credential || credential.extensionSupport?.prf !== false) return;
-		const seen = `simpleTodo.prfWarned.${credential.credentialId ?? 'unknown'}`;
+		const seen = `yogaClips.prfWarned.${credential.credentialId ?? 'unknown'}`;
 		try {
 			if (localStorage.getItem(seen) === 'true') return;
 			localStorage.setItem(seen, 'true');
@@ -108,39 +150,24 @@
 	}
 
 	const handleModalClose = async () => {
-		// The dialog shows this now, so a stale one would accuse the attempt that
-		// is only just starting.
 		error = null;
-		const canonicalMnemonic = normalizeSpanishMnemonic(selectedMnemonic);
-		selectedMnemonic = canonicalMnemonic;
 		try {
-			localStorage.setItem(SPANISH_MNEMONIC_STORAGE_KEY, canonicalMnemonic);
-			if (rememberDecision) {
-				localStorage.setItem(CONSENT_KEY, 'true');
-			}
+			if (rememberDecision) localStorage.setItem(CONSENT_KEY, 'true');
 		} catch {
 			// ignore storage errors
 		}
 		try {
-			// Resolve the identity choice first — WebAuthn calls must run inside
-			// the user gesture of the proceed click.
+			// WebAuthn calls must run inside the user gesture of the proceed click.
 			let passkeyCredential = null;
 			if (identityMode === 'create') {
-				if (!passkeyLabel.trim()) {
-					throw new IdentityChoiceError($_('consent.errorNeedsLabel'));
-				}
-				// The same label goes into both WebAuthn fields on purpose: they are
-				// the account name and the display name of one credential, and the
-				// picker shows them together. Neither identifies the passkey.
+				if (!passkeyLabel.trim()) throw new IdentityChoiceError($_('consent.errorNeedsLabel'));
 				passkeyCredential = await createPasskeyCredential({
 					userId: passkeyLabel.trim(),
 					displayName: passkeyLabel.trim()
 				});
 			} else if (identityMode === 'existing') {
 				passkeyCredential = await recoverPasskeyCredential();
-				if (!passkeyCredential) {
-					throw new IdentityChoiceError($_('consent.errorNoPasskey'));
-				}
+				if (!passkeyCredential) throw new IdentityChoiceError($_('consent.errorNoPasskey'));
 			}
 			try {
 				localStorage.setItem(IDENTITY_MODE_KEY, passkeyCredential ? 'passkey' : 'anon');
@@ -149,11 +176,11 @@
 			}
 
 			if ($initializationStore.isInitialized) {
-				await restartP2PLazy({ todoDbName: canonicalMnemonic });
+				const { restartP2P } = await import('$lib/p2p.js');
+				await restartP2P();
 			} else {
-				await startP2P({ todoDbName: canonicalMnemonic, passkeyCredential });
+				await startP2P({ passkeyCredential });
 			}
-			activeMnemonic = canonicalMnemonic;
 			warnIfIdentityCannotTravel(passkeyCredential);
 		} catch (err) {
 			showModal = true;
@@ -166,24 +193,14 @@
 		}
 	};
 
-	// Loaded on demand, not at page load. `p2p.js` pulls libp2p, Helia, OrbitDB
-	// and gossipsub, and none of it is needed to render the consent dialog —
-	// the only thing on screen until the user agrees.
+	// Loaded on demand: p2p.js pulls libp2p, Helia and OrbitDB, none of which
+	// the consent dialog needs.
 	async function startP2P(/** @type {any} */ options) {
 		void loadSponsorFab();
 		const { initializeP2P } = await import('$lib/p2p.js');
 		await initializeP2P(options);
 	}
 
-	async function restartP2PLazy(/** @type {any} */ options) {
-		const { restartP2P } = await import('$lib/p2p.js');
-		await restartP2P(options);
-	}
-
-	// The largest single thing this app ships, and the whole Aleph deployment
-	// machinery rides with it. It lives inside the network panel behind the
-	// consent dialog, so a static import made every visitor download a relay
-	// deployer before they could read the dialog.
 	/** @type {any} */
 	let SponsorRelayFab = null;
 	async function loadSponsorFab() {
@@ -193,63 +210,30 @@
 
 	onMount(async () => {
 		try {
-			selectedMnemonic = loadOrGenerateMnemonic();
 			const rememberedIdentityMode = localStorage.getItem(IDENTITY_MODE_KEY);
 			if (rememberedIdentityMode === 'passkey') {
 				// A WebAuthn prompt needs a user gesture, so a remembered passkey
-				// session cannot auto-start: preselect recovery and show the modal.
-				// Say so — an unexplained dialog on every start reads as the same
-				// failure as a dialog that came back because something broke.
+				// session cannot auto-start: preselect recovery and say why the
+				// dialog is back.
 				identityMode = 'existing';
 				notice = $_('consent.existingNeedsTap');
 			} else if (localStorage.getItem(CONSENT_KEY) === 'true') {
 				showModal = false;
-				activeMnemonic = normalizeSpanishMnemonic(selectedMnemonic);
-				await startP2P({ todoDbName: activeMnemonic, passkeyCredential: null });
+				await startP2P({ passkeyCredential: null });
 			}
 		} catch {
 			// ignore storage errors
 		}
 	});
 
-	function loadOrGenerateMnemonic() {
-		try {
-			const saved = localStorage.getItem(SPANISH_MNEMONIC_STORAGE_KEY);
-			if (saved && isValidSpanishMnemonic(saved)) return normalizeSpanishMnemonic(saved);
-		} catch {
-			// Continue with an in-memory mnemonic when browser storage is unavailable.
-		}
-		const generated = generateSpanishMnemonic();
-		try {
-			localStorage.setItem(SPANISH_MNEMONIC_STORAGE_KEY, generated);
-		} catch {
-			// The generated value remains usable for this session.
-		}
-		return generated;
-	}
-
 	/**
-	 * @param {string} message
-	 * @param {ToastType} [type='default']
-	 */
-	/** @type {ReturnType<typeof setTimeout> | null} */
-	let toastTimer = null;
-	let toastDuration = 3000;
-
-	/**
-	 * Three seconds fits "Todo added". It does not fit two sentences about what
-	 * an authenticator cannot do, so the duration is the caller's to say.
-	 *
 	 * @param {string} message
 	 * @param {ToastType} [type]
-	 * @param {number} [duration] milliseconds on screen
+	 * @param {number} [duration]
 	 */
 	function showToast(message, type = 'default', duration = 3000) {
 		toastMessage = message;
 		toastType = type;
-		// The component auto-hides on its own timer, so it has to hear the same
-		// number — otherwise it disappears after its default three seconds while
-		// this one is still counting.
 		toastDuration = duration;
 		if (toastTimer) clearTimeout(toastTimer);
 		toastTimer = setTimeout(() => {
@@ -258,58 +242,52 @@
 		}, duration);
 	}
 
-	/**
-	 * @param {AddTodoEvent} event
-	 */
-	const handleAddTodo = async (event) => {
-		const result = await addTodo(event.detail.text);
+	/** @param {Clip} clip */
+	function play(clip) {
+		playing = clip;
+	}
+
+	/** @param {Clip} clip */
+	function done(clip) {
+		if (!identityId) return;
+		doneLog = markDone(doneLog, clip.id);
+		saveDoneLog(identityId, doneLog);
+		showToast(
+			$_('clip.markedDone', { values: { minutes: Math.round(clip.durationSec / 60) } }),
+			'success'
+		);
+	}
+
+	/** @param {Clip} clip */
+	function undo(clip) {
+		if (!identityId) return;
+		doneLog = unmarkLast(doneLog, clip.id);
+		saveDoneLog(identityId, doneLog);
+	}
+
+	/** @param {Clip} clip */
+	async function remove(clip) {
+		const result = await removeClip(clip.id);
 		if (result.ok) {
-			showToast('✅ Todo added successfully!', 'success');
+			showToast($_('clip.removed'), 'success');
+		} else if (result.kind === 'denied') {
+			showToast($_('clip.denied'), 'error', 6000);
 		} else {
-			showToast(`❌ ${result.error ?? 'Failed to add todo'}`, 'error');
+			showToast($_('clip.removeFailed', { values: { reason: result.message } }), 'error', 6000);
 		}
-	};
-
-	/**
-	 * @param {TodoActionEvent} event
-	 */
-	const handleDelete = async (event) => {
-		const success = await deleteTodo(event.detail.key);
-		if (success) {
-			showToast('🗑️ Todo deleted successfully!', 'success');
-		} else {
-			showToast('❌ Failed to delete todo', 'error');
-		}
-	};
-
-	/**
-	 * @param {TodoActionEvent} event
-	 */
-	const handleToggleComplete = async (event) => {
-		const success = await toggleTodoComplete(event.detail.key);
-		if (success) {
-			showToast('✅ Todo status updated!', 'success');
-		} else {
-			showToast('❌ Failed to update todo', 'error');
-		}
-	};
+	}
 
 	/**
 	 * @param {{ detail: { status: 'stable' | 'dropped', detail: string, remotePeer: string | null, remoteAddr: string } }} event
 	 */
 	const handleManualConnect = (event) => {
 		const peerTarget = event.detail.remotePeer || event.detail.remoteAddr;
-
 		if (event.detail.status === 'stable') {
-			showToast(`🔗 Connected to ${peerTarget}`, 'success');
+			showToast(`🔗 ${peerTarget}`, 'success');
 			return;
 		}
-
-		showToast(`⚠️ ${peerTarget} closed the connection shortly after connect`, 'warning');
+		showToast(`⚠️ ${peerTarget}`, 'warning');
 	};
-
-	// Subscribe to the peerIdStore
-	$: myPeerId = $peerIdStore;
 
 	let connectedPeersRef;
 </script>
@@ -317,55 +295,47 @@
 <ToastNotification message={toastMessage} type={toastType} duration={toastDuration} />
 
 <svelte:head>
-	<title>Simple-Todo {typeof __APP_VERSION__ !== 'undefined' ? __APP_VERSION__ : '0.0.0'}</title>
+	<title
+		>{$_('app.title')} {typeof __APP_VERSION__ !== 'undefined' ? __APP_VERSION__ : '0.0.0'}</title
+	>
 	<meta name="viewport" content="width=device-width, initial-scale=1.0" />
-	<meta
-		name="description"
-		content="A simple local-first peer-to-peer TODO list app using OrbitDB, IPFS and libp2p"
-	/>
+	<meta name="description" content={$_('app.tagline')} />
 </svelte:head>
 
-<!-- Only render the modal when needed -->
 {#if showModal}
 	<ConsentModal
 		bind:show={showModal}
 		bind:rememberDecision
-		canProceed={mnemonicValid}
+		canProceed={true}
 		identity={identityMode}
 		{error}
 		{notice}
 		on:proceed={handleModalClose}
 	>
 		<svelte:fragment slot="before-confirmation">
-			<SharedListSelector bind:value={selectedMnemonic} />
 			<PasskeyOnboarding bind:mode={identityMode} bind:label={passkeyLabel} />
 		</svelte:fragment>
 	</ConsentModal>
 {/if}
 
-<main class="container mx-auto max-w-4xl p-6">
-	<!-- Header with title and social icons -->
+<main class="container mx-auto max-w-5xl p-4 sm:p-6">
 	<header class="mb-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
 		<div class="flex flex-1 items-center gap-3">
 			<LeSpaceLogo size={52} />
 			<div>
-				<h1 class="text-2xl font-bold text-heading sm:text-3xl">Simple-Todo</h1>
-				<!--
-					Four lines of stack versions and a build timestamp were what the
-					header said about this app. They moved into the network details,
-					where somebody who needs them already goes.
-				-->
-				<p class="mt-1 text-sm text-faint">A local-first peer-to-peer PWA</p>
+				<h1 class="text-2xl font-bold text-heading sm:text-3xl">{$_('app.title')}</h1>
+				<p class="mt-1 text-sm text-faint">{$_('app.tagline')}</p>
 			</div>
 		</div>
-		<div class="flex flex-shrink-0 items-center gap-2 self-start sm:self-auto">
+		<div class="flex flex-shrink-0 flex-wrap items-center gap-2 self-start sm:self-auto">
 			<DidBadge did={$ownDidStore ?? ''} />
+			<LanguageSwitcher />
 			<ThemeToggle />
 			<SocialIcons size="w-5 h-5" className="" />
 		</div>
 	</header>
 
-	<P2PStatusNav initialization={$initializationStore} libp2p={$libp2pStore} peerId={myPeerId}>
+	<P2PStatusNav initialization={$initializationStore} libp2p={$libp2pStore} peerId={$peerIdStore}>
 		<ManualConnectForm
 			compact
 			disabled={!$initializationStore.isInitialized}
@@ -373,28 +343,14 @@
 		/>
 		<ConnectedPeers compact bind:this={connectedPeersRef} libp2p={$libp2pStore} />
 		<div class="max-w-full min-w-0 space-y-3 overflow-hidden">
-			<PeerIdCard compact peerId={myPeerId} />
+			<PeerIdCard compact peerId={$peerIdStore} />
 			<OwnMultiaddrs libp2p={$libp2pStore} />
 			<p class="text-xs break-words text-faint" data-testid="build-info">
-				{formatVersions({ appName: 'Simple-Todo' })} · {typeof __APP_BRANCH__ !== 'undefined'
+				{formatVersions({ appName: 'Yoga Clips' })} · {typeof __APP_BRANCH__ !== 'undefined'
 					? __APP_BRANCH__
 					: 'local'} [{typeof __BUILD_DATE__ !== 'undefined' ? __BUILD_DATE__ : 'dev'}]
 			</p>
 		</div>
-		<svelte:fragment slot="shared-list">
-			{#if $initializationStore.isInitialized && activeMnemonic}
-				<SharedListDetails
-					embedded
-					mnemonic={activeMnemonic}
-					databaseAddress={$todoDBAddressStore}
-					activeList={$activeListStore}
-					on:change={() => {
-						selectedMnemonic = activeMnemonic;
-						showModal = true;
-					}}
-				/>
-			{/if}
-		</svelte:fragment>
 	</P2PStatusNav>
 
 	{#if !showModal && (error || $initializationStore.error)}
@@ -402,20 +358,49 @@
 	{/if}
 
 	{#if $initializationStore.isInitialized}
-		<NewPrivateListButton />
-		<ListSwitcher />
-		<OpenDatabaseForm />
+		<div class="mt-4 flex flex-wrap items-center gap-3">
+			<PracticeStats {stats} />
+		</div>
+		<PlaylistPanel notify={showToast} />
+		<SharePanel />
 		<PermissionsPanel />
 	{/if}
 
-	<!-- Add TODO Form -->
-	<AddTodoForm on:add={handleAddTodo} disabled={!$initializationStore.isInitialized} />
+	<AddClipForm disabled={!$initializationStore.isInitialized} notify={showToast} />
 
-	<!-- TODO List -->
-	<TodoList todos={$todosStore} on:delete={handleDelete} on:toggleComplete={handleToggleComplete} />
+	{#if $initializationStore.isInitialized && $activePlaylistStore.kind !== 'none'}
+		<ClipFilters
+			teachers={$teachersStore}
+			tags={$tagsStore}
+			bind:teacher={filterTeacher}
+			bind:tag={filterTag}
+			bind:minutes={filterMinutes}
+			count={filtered.length}
+			total={$clipsStore.length}
+		/>
+		<ClipGrid
+			clips={filtered}
+			total={$clipsStore.length}
+			{doneLog}
+			isOwner={$activePlaylistStore.kind === 'owner'}
+			{identityId}
+			onplay={play}
+			ondone={done}
+			onundo={undo}
+			onremove={remove}
+		/>
+		<TransferPanel notify={showToast} />
+	{/if}
 </main>
 
-<!-- Floating Relay Button FAB -->
+<ClipPlayer
+	clip={playing}
+	playlistAddress={$activePlaylistStore.address}
+	doneToday={playing ? doneToday(doneLog, playing.id) : false}
+	onclose={() => (playing = null)}
+	ondone={done}
+/>
+
 {#if SponsorRelayFab}
 	<svelte:component
 		this={SponsorRelayFab}

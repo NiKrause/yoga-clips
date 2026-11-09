@@ -3,9 +3,9 @@ import { formatVersions } from './build-info.js';
 
 describe('formatVersions', () => {
 	it('puts the app name in front of the app version', () => {
-		const [app] = formatVersions({ appName: 'Simple-Todo' }).split(' · ');
+		const [app] = formatVersions({ appName: 'Yoga Clips' }).split(' · ');
 
-		expect(app).toBe(`Simple-Todo v${__APP_VERSION__}`);
+		expect(app).toBe(`Yoga Clips v${__APP_VERSION__}`);
 	});
 
 	it('drops the app name where a heading already carries it', () => {
@@ -25,7 +25,7 @@ describe('formatVersions', () => {
 
 	it('never names a dependency without a version behind it', () => {
 		// The app's own segment is exempt: it is either "v0.2.0" under a heading
-		// that names the app, or "Simple-Todo v0.2.0" where no heading does.
+		// that names the app, or "Yoga Clips v0.1.0" where no heading does.
 		for (const entry of formatVersions().split(' · ').slice(1)) {
 			expect(entry).toMatch(/^\S.* \d+\.\d+\.\d+/);
 		}

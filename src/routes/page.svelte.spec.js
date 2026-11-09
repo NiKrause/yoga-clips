@@ -1,3 +1,5 @@
+/// <reference types="@vitest/browser/matchers" />
+/// <reference types="@vitest/browser/providers/playwright" />
 import { page } from '@vitest/browser/context';
 import { describe, expect, it } from 'vitest';
 import { render } from 'vitest-browser-svelte';
@@ -9,7 +11,7 @@ describe('/+page.svelte', () => {
 
 		const heading = page.getByRole('main').getByRole('heading', {
 			level: 1,
-			name: 'Simple-Todo'
+			name: 'Yoga Clips'
 		});
 		await expect.element(heading).toBeInTheDocument();
 	});

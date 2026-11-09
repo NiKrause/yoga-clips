@@ -9,7 +9,7 @@
 
 	export let show = true;
 	export let rememberDecision = false;
-	/** Whether the app's own gate is satisfied — here, a valid mnemonic. */
+	/** Whether the app's own gate is satisfied; this app has none beyond the tick. */
 	export let canProceed = true;
 	/** @type {'anonymous' | 'create' | 'existing'} */
 	export let identity = 'anonymous';
@@ -63,13 +63,14 @@
 			get(_)('consent.clause.noServer'),
 			get(_)('consent.clause.gateway'),
 			get(_)('consent.clause.relay'),
-			get(_)('consent.clause.sharedList'),
-			get(_)('consent.clause.privateList'),
+			get(_)('consent.clause.playlist'),
 			get(_)('consent.clause.readingIsOpen'),
+			get(_)('consent.clause.oembed'),
+			get(_)('consent.clause.embeds'),
+			get(_)('consent.clause.storage'),
 			state.identity === 'anonymous'
 				? get(_)('consent.clause.identityAnonymous')
 				: get(_)('consent.clause.identityPasskey'),
-			get(_)('consent.clause.reload'),
 			get(_)('consent.clause.cookies')
 		].filter(Boolean);
 
@@ -108,19 +109,7 @@
 	}
 	$: if (ready) introEl.choices = { identity };
 
-	/*
-		One label for two different blockers told people to fill in a field that
-		was already filled: the mnemonic is generated and valid on arrival, so
-		what actually holds the button is the acceptance tick further down.
-
-		Named in reading order — the mnemonic sits above the tick, so an invalid
-		one is what to say first.
-	*/
-	$: proceedLabel = !canProceed
-		? $_('consent.proceedDisabled')
-		: !accepted
-			? $_('consent.proceedNeedsAccept')
-			: $_('consent.proceed');
+	$: proceedLabel = !accepted ? $_('consent.proceedNeedsAccept') : $_('consent.proceed');
 	$: if (ready && show && !introEl.isOpen) void introEl.open();
 
 	/**
@@ -203,10 +192,9 @@
 	</div>
 
 	<!--
-		The chapter's own controls: the shared-list mnemonic and the identity
-		choice. They stay the app's markup in the element's story slot, which is
-		the split the element is built around — it knows about dialogs, not about
-		this app.
+		The app's own control: the identity choice. It stays the app's markup in
+		the element's story slot, which is the split the element is built around —
+		it knows about dialogs, not about this app.
 	-->
 	<slot name="before-confirmation" />
 

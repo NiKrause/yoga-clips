@@ -26,7 +26,7 @@ import { OrbitDBAccessController } from '@orbitdb/core';
  * address. It hides *which* registry is yours, not its contents.
  */
 
-const DOMAIN = 'simple-todo/list-registry/v1';
+const DOMAIN = 'yoga-clips/playlist-registry/v1';
 
 /** @typedef {{ address: string, name: string, role: 'owner' | 'guest', createdAt: number }} ListEntry */
 

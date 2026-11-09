@@ -22,7 +22,7 @@ addMessages('de', de);
 addMessages('en', en);
 
 export const SUPPORTED = /** @type {const} */ (['de', 'en']);
-const STORAGE_KEY = 'simpleTodo.locale';
+const STORAGE_KEY = 'yogaClips.locale';
 
 /**
  * The language to start in.

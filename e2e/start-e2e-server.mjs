@@ -7,13 +7,13 @@ import process from 'node:process';
 const rootDir = process.cwd();
 const relayMode = (process.env.E2E_RELAY_MODE || 'local').trim().toLowerCase();
 const relayPorts = {
-	http: process.env.E2E_RELAY_HTTP_PORT || '49100',
-	tcp: process.env.E2E_RELAY_TCP_PORT || '49101',
-	ws: process.env.E2E_RELAY_WS_PORT || '49102',
-	webrtc: process.env.E2E_RELAY_WEBRTC_PORT || '49103',
-	webrtcDirect: process.env.E2E_RELAY_WEBRTC_DIRECT_PORT || '49106'
+	http: process.env.E2E_RELAY_HTTP_PORT || '49200',
+	tcp: process.env.E2E_RELAY_TCP_PORT || '49201',
+	ws: process.env.E2E_RELAY_WS_PORT || '49202',
+	webrtc: process.env.E2E_RELAY_WEBRTC_PORT || '49203',
+	webrtcDirect: process.env.E2E_RELAY_WEBRTC_DIRECT_PORT || '49206'
 };
-const previewPort = process.env.E2E_PREVIEW_PORT || '4173';
+const previewPort = process.env.E2E_PREVIEW_PORT || '4273';
 const relayDatastorePath = path.join(rootDir, 'relay', 'e2e-relay-datastore');
 const relayInfoPath = path.join(rootDir, 'e2e', 'relay-info.json');
 const relayLogPath = path.join(rootDir, 'e2e', 'relay.log');

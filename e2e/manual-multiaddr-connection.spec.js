@@ -3,7 +3,6 @@ import { passConsent } from './consent.mjs';
 
 const testUrl = '/';
 const connectionTimeout = 90000;
-const sharedMnemonic = 'sol-camino-verde';
 
 test.describe('Manual browser connection using a copied own multiaddress', () => {
 	test('Browser B connects with a multiaddress copied from Browser A', async ({ browser }) => {
@@ -72,7 +71,7 @@ test.describe('Manual browser connection using a copied own multiaddress', () =>
 					() =>
 						bob.evaluate(
 							(peerId) =>
-								window.__simpleTodoE2E
+								window.__yogaClipsE2E
 									?.getConnections?.()
 									.some((connection) => connection.remotePeer === peerId) ?? false,
 							alicePeerId
@@ -90,8 +89,8 @@ test.describe('Manual browser connection using a copied own multiaddress', () =>
 /** @param {import('@playwright/test').Page} page */
 async function openReadyApp(page) {
 	await page.goto(testUrl);
-	await passConsent(page, { mnemonic: sharedMnemonic });
-	await expect(page.getByPlaceholder('What needs to be done?')).toBeEnabled({
+	await passConsent(page);
+	await expect(page.getByTestId('new-playlist-create')).toBeVisible({
 		timeout: connectionTimeout
 	});
 }
@@ -108,9 +107,9 @@ async function openNetworkDetails(page) {
 /** @param {import('@playwright/test').Page} page */
 async function getPeerId(page) {
 	await expect
-		.poll(() => page.evaluate(() => window.__simpleTodoE2E?.getPeerId?.() ?? null), {
+		.poll(() => page.evaluate(() => window.__yogaClipsE2E?.getPeerId?.() ?? null), {
 			timeout: connectionTimeout
 		})
 		.toBeTruthy();
-	return page.evaluate(() => window.__simpleTodoE2E.getPeerId());
+	return page.evaluate(() => window.__yogaClipsE2E.getPeerId());
 }

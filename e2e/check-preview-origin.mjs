@@ -46,7 +46,9 @@ const MAY_SAY_A_PORT = new Set([
  * service and none of this guard's business. 4173 is the number two checkouts
  * collide on, because it is the one vite picks when nobody says otherwise.
  */
-const HARDCODED = /(?:localhost|127\.0\.0\.1|\[::1\]):4173/g;
+// 4273 is this app's own default, so that a simple-todo checkout (4173) and
+// this one can run their suites side by side.
+const HARDCODED = /(?:localhost|127\.0\.0\.1|\[::1\]):(?:4173|4273)/g;
 
 async function* sourceFiles(dir) {
 	for (const entry of await readdir(dir, { withFileTypes: true })) {

@@ -6,7 +6,7 @@ import { defineConfig, devices } from '@playwright/test';
 // their suites at the same time — and worse, a preview left behind by another
 // branch on 4173 would be silently used instead, so a suite could pass or fail
 // against an app it never built (#197).
-const previewPort = Number(process.env.E2E_PREVIEW_PORT || 4173);
+const previewPort = Number(process.env.E2E_PREVIEW_PORT || 4273);
 
 export default defineConfig({
 	webServer: {

@@ -1,6 +1,6 @@
 import { writable } from 'svelte/store';
 
-export const WEBRTC_ENABLED_STORAGE_KEY = 'simpleTodo.webrtcEnabled';
+export const WEBRTC_ENABLED_STORAGE_KEY = 'yogaClips.webrtcEnabled';
 
 let currentWebRTCEnabled = true;
 

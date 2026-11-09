@@ -67,7 +67,7 @@ export function formatBuildDate(iso, locales = undefined) {
  *
  * @param {{ appName?: string }} [options] `appName` prefixes the app's own
  *   version; omit it where a heading already names the app.
- * @returns {string} e.g. "Simple-Todo v0.2.0 · OrbitDB 4.0.0 · Helia 7.1.0"
+ * @returns {string} e.g. "Yoga Clips v0.1.0 · OrbitDB 4.0.0 · Helia 7.1.0"
  */
 export function formatVersions({ appName = '' } = {}) {
 	const appVersion = typeof __APP_VERSION__ !== 'undefined' ? __APP_VERSION__ : '0.0.0';

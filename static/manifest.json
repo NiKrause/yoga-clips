@@ -1,12 +1,16 @@
 {
-  "name": "Simple-Todo",
-  "short_name": "Simple-Todo",
-  "description": "A local-first peer-to-peer todo list using OrbitDB, IPFS and libp2p. No servers, no accounts, no passwords.",
+  "name": "Yoga Clips",
+  "short_name": "Yoga Clips",
+  "description": "A local-first peer-to-peer collection of short yoga clips from your favourite teachers, using OrbitDB, IPFS and libp2p. No servers, no accounts.",
   "start_url": "/",
   "display": "standalone",
   "background_color": "#0B0E15",
   "theme_color": "#0B0E15",
-  "categories": ["productivity", "utilities"],
+  "categories": [
+    "health",
+    "lifestyle",
+    "productivity"
+  ],
   "icons": [
     {
       "src": "/favicon-16x16.png",

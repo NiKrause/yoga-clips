@@ -1,11 +1,11 @@
-# Testing Guide
+# Testing
 
-The test suite runs locally with Playwright's Chromium project. The configured
-web server starts the app and its local relay automatically.
+The suite runs locally with Playwright's Chromium project. The configured web
+server (`e2e/start-e2e-server.mjs`) builds the app, starts a local
+`orbitdb-relay` and serves the build on port 4273 — a different port from
+simple-todo's 4173, so both checkouts can run their suites at the same time.
 
 ## Setup
-
-Install dependencies and Chromium:
 
 ```bash
 pnpm install
@@ -14,68 +14,47 @@ pnpm exec playwright install chromium
 
 ## Commands
 
-Run unit tests:
+Unit tests (vitest, in a headless Chromium):
 
 ```bash
 pnpm run test:unit
 ```
 
-Run all end-to-end tests:
+All end-to-end tests:
 
 ```bash
 pnpm run test:e2e
 ```
 
-Run the mnemonic-specific isolation and two-browser replication scenario:
+The two-browser story alone — Alice shares a playlist with Bob, Bob is refused,
+Alice grants his DID, Bob's clip reaches Alice, the export fits the schema, the
+deep link opens the player:
 
 ```bash
-pnpm exec playwright test e2e/shared-list-mnemonic.spec.js --project=chromium
+pnpm exec playwright test e2e/clips-sharing.spec.js --project=chromium
 ```
 
-This test copies Alice's visible three-word Spanish share code into Bob's startup form, proves both derive the same OrbitDB address, verifies bidirectional replication, and confirms a third browser using another mnemonic remains isolated.
+Both browsers run with a CDP virtual authenticator (CTAP 2.1, resident keys,
+largeBlob), so the passkey ceremonies need no OS dialog.
 
-Run only consent-screen tests:
+## Ports
 
-```bash
-pnpm run test:consent
-```
+| What           | Default       | Env                                        |
+| -------------- | ------------- | ------------------------------------------ |
+| Preview        | 4273          | `E2E_PREVIEW_PORT`                         |
+| Relay HTTP     | 49200         | `E2E_RELAY_HTTP_PORT`                      |
+| Relay TCP / WS | 49201 / 49202 | `E2E_RELAY_TCP_PORT` / `E2E_RELAY_WS_PORT` |
 
-Run against a public relay/bootstrap setup:
-
-```bash
-pnpm run test:e2e:public-relay
-```
-
-Run the relay-pinning proof against a local `orbitdb-relay` checkout:
-
-```bash
-pnpm --dir /Users/nandi/orbitdb-relay run build
-pnpm run test:e2e:local-relay-src
-```
-
-`E2E_RELAY_CLI_PATH` can point the local E2E server at another relay build.
-`E2E_RELAY_HTTP_ORIGIN` is required when a pinning proof calls
-`/pinning/sync` and `/pinning/databases`.
+`pnpm run check:preview-origin` fails when a spec names the preview port
+instead of reading it from `e2e/preview-origin.mjs`.
 
 ## Debugging
 
-Open Playwright UI mode:
-
 ```bash
 pnpm exec playwright test --ui --project=chromium
-```
-
-Run headed with the Playwright Inspector:
-
-```bash
 PWDEBUG=1 pnpm exec playwright test --project=chromium --headed
-```
-
-Show the last HTML report:
-
-```bash
 pnpm exec playwright show-report
 ```
 
 Screenshots are captured on failure, videos are retained on failure, and a
-trace is collected on the first retry.
+trace is collected on the first retry. The relay's log is in `e2e/relay.log`.

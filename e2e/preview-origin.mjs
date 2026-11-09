@@ -16,6 +16,6 @@
  * between.
  */
 
-export const PREVIEW_PORT = Number(process.env.E2E_PREVIEW_PORT || 4173);
+export const PREVIEW_PORT = Number(process.env.E2E_PREVIEW_PORT || 4273);
 
 export const PREVIEW_ORIGIN = `http://localhost:${PREVIEW_PORT}`;

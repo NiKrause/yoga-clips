@@ -75,18 +75,14 @@ export async function rememberDecision(page) {
  * The whole walk: choose an identity, accept, proceed.
  *
  * `identity` defaults to what the app defaults to, so a caller that does not
- * care about it says nothing about it. `mnemonic` is left alone unless given —
- * the app generates a valid one, and most specs only need *a* shared list.
+ * care about it says nothing about it.
  *
  * @param {import('@playwright/test').Page} page
- * @param {{ identity?: 'anonymous' | 'create' | 'existing', label?: string, mnemonic?: string, remember?: boolean }} [choices]
+ * @param {{ identity?: 'anonymous' | 'create' | 'existing', label?: string, remember?: boolean }} [choices]
  */
-export async function passConsent(page, { identity, label, mnemonic, remember = false } = {}) {
+export async function passConsent(page, { identity, label, remember = false } = {}) {
 	await waitForConsent(page);
 
-	if (mnemonic !== undefined) {
-		await page.getByTestId('shared-list-mnemonic-input').fill(mnemonic);
-	}
 	if (identity !== undefined) {
 		await page.getByTestId(`identity-mode-${identity}`).check();
 	}

@@ -10,7 +10,7 @@
 //   2. localStorage — the serialized credential stored at registration time.
 //
 // The passkey is bound to the page origin (rpId). A credential created on
-// localhost cannot be used on simple-todo.le-space.de or an IPFS gateway —
+// localhost cannot be used on yoga-clips.le-space.de or an IPFS gateway —
 // see the chapter README.
 import {
 	WebAuthnDIDProvider,
@@ -23,7 +23,7 @@ import {
 	clearWebAuthnCredential
 } from '@le-space/orbitdb-identity-provider-webauthn-did';
 
-const CREDENTIAL_STORAGE_KEY = 'simpleTodo.webauthnCredential';
+const CREDENTIAL_STORAGE_KEY = 'yogaClips.webauthnCredential';
 
 /**
  * Register a brand-new passkey and persist its identity metadata for later
