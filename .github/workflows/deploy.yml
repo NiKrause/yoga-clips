@@ -32,6 +32,27 @@ jobs:
       image: mcr.microsoft.com/playwright:v1.61.1-noble
     timeout-minutes: 15
     steps:
+      # A fork, a pull request from outside, or a fresh repository has no deploy
+      # key. The build still runs as a check; publishing is skipped with one
+      # clear line instead of failing after install, bootstrap and a full build
+      # with "Missing required environment variable ALEPH_PRIVATE_KEY".
+      - name: Is the deploy key there?
+        id: key
+        env:
+          ALEPH_PRIVATE_KEY: ${{ secrets.ALEPH_PRIVATE_KEY }}
+        run: |
+          n=${#ALEPH_PRIVATE_KEY}
+          if [ "$n" -ge 32 ]; then
+            echo "deploy=true" >> "$GITHUB_OUTPUT"
+            echo "ALEPH_PRIVATE_KEY: set ($n characters)"
+          else
+            echo "deploy=false" >> "$GITHUB_OUTPUT"
+            echo "::warning::ALEPH_PRIVATE_KEY is not set ($n characters): the site is built but not published. Set it with: gh secret set ALEPH_PRIVATE_KEY --repo ${GITHUB_REPOSITORY}"
+            echo '## Deploy skipped' >> "$GITHUB_STEP_SUMMARY"
+            echo >> "$GITHUB_STEP_SUMMARY"
+            echo 'No `ALEPH_PRIVATE_KEY` secret in this repository, so the build was only checked, not published to Aleph.' >> "$GITHUB_STEP_SUMMARY"
+          fi
+
       - name: Checkout yoga-clips
         uses: actions/checkout@v6
 
@@ -130,11 +151,11 @@ jobs:
         run: pnpm build
 
       - name: Install isolated Aleph deploy tooling
-        if: github.event_name == 'push' || github.event_name == 'workflow_dispatch'
+        if: steps.key.outputs.deploy == 'true' && (github.event_name == 'push' || github.event_name == 'workflow_dispatch')
         run: npm install --prefix /tmp/le-space-deployer @le-space/node@0.6.22 --ignore-scripts
 
       - name: Publish to Aleph IPFS
-        if: github.event_name == 'push' || github.event_name == 'workflow_dispatch'
+        if: steps.key.outputs.deploy == 'true' && (github.event_name == 'push' || github.event_name == 'workflow_dispatch')
         id: publish
         env:
           ALEPH_VM_MODE: site-publish
