@@ -35,3 +35,6 @@ pnpm-workspace.yaml
 
 # vitest browser mode writes a screenshot per failed test
 **/__screenshots__/
+
+# Claude desktop launch config, local only
+.claude/
