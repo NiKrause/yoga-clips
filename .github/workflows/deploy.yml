@@ -117,6 +117,10 @@ jobs:
           # Normal deployments discover the current Aleph relays. Only an explicit
           # workflow-dispatch input may override that snapshot.
           RELAY_BOOTSTRAP_OVERRIDE: ${{ inputs.relay_bootstrap_addr || '' }}
+          # When discovery finds nothing (the registration lapsed, Aleph's API
+          # is down), the production relay's known address is still probed and
+          # baked if it answers. Same address as in .env.example.
+          RELAY_BOOTSTRAP_FALLBACK: /dns4/crazy-pluck-uncle-device.2n6.me/tcp/443/tls/ws/p2p/12D3KooWQu5E1ZkGC5x2dSVTEWxYvsssWjXgk2Mzc8GZHN26cYzS
         run: node scripts/resolve-aleph-bootstrap.mjs
 
       - name: Build

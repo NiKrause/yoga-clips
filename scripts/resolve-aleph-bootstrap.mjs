@@ -84,11 +84,12 @@ const fallback = process.env.RELAY_BOOTSTRAP_FALLBACK?.trim() || '';
 // orbitdb browsers stuck at `candidates: 0`).
 const profile = process.env.RELAY_BOOTSTRAP_PROFILE?.trim() || 'orbitdb-relay';
 // Bake only the production registration into the site bundle: ephemeral E2E
-// relays (`relay:<profile>:simple-todo-e2e-*`) may be alive during a build,
-// pass the ping probe, and then become permanent dial noise for every
-// visitor once their VM is erased (issue #84).
+// and smoke relays (`relay:<profile>:smoke-orbitdb-relay-*`) may be alive
+// during a build, pass the ping probe, and then become permanent dial noise
+// for every visitor once their VM is erased (simple-todo #84). The production
+// relay is `relay-main-ekb` (see src/lib/aleph-bootstrap-discovery.js).
 const registrationId =
-	process.env.RELAY_BOOTSTRAP_REGISTRATION_ID?.trim() || 'relay:orbitdb-relay:orbitdb-relay';
+	process.env.RELAY_BOOTSTRAP_REGISTRATION_ID?.trim() || 'relay:orbitdb-relay:relay-main-ekb';
 
 let resolution = resolveBootstrapMultiaddrs({ override, fallback });
 if (resolution.source !== 'override') {
