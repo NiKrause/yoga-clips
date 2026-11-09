@@ -63,6 +63,10 @@
 
 	async function submit() {
 		errorMessage = null;
+		// Read the field directly rather than through `parsed`: a submit that
+		// follows the last keystroke in the same tick would otherwise judge the
+		// previous value.
+		const parsed = parseClipUrl(url);
 		if (!parsed) {
 			errorMessage = $_('clip.invalidUrl');
 			return;
