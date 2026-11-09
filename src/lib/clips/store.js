@@ -1,6 +1,7 @@
 import { writable, derived, get } from 'svelte/store';
 import { Documents, OrbitDBAccessController } from '@orbitdb/core';
 import { rememberList, listRegistryStore, openListRegistry } from '../list-registry.js';
+import { relayHttpStatusStore } from '../relay-status.js';
 import { createClip, toExportDocument, validateClip } from './schema.js';
 import { parseAppLink } from './share.js';
 
@@ -33,6 +34,7 @@ import { parseAppLink } from './share.js';
  *   put: (doc: Clip) => Promise<unknown>
  *   del: (key: string) => Promise<unknown>
  *   close?: () => Promise<unknown>
+ *   sync?: { start?: () => Promise<unknown>, stop?: () => Promise<unknown> }
  *   events: { on: (event: string, handler: (...args: any[]) => void) => void }
  * }} PlaylistDatabase
  */
@@ -281,6 +283,49 @@ function setupListeners(db) {
 }
 
 /**
+ * After a write, make sure the relay has it and the heads exchange ran.
+ *
+ * Carried over from simple-todo's relay replication proof, minus the proof:
+ * a POST to the relay's `/pinning/sync` makes it open the database and sync,
+ * and restarting this side's sync re-triggers OrbitDB's heads exchange while
+ * the relay has the database open. Without it, an entry written on one
+ * browser was seen to reach the relay and still not the second browser —
+ * gossipsub alone drops the first head now and then.
+ *
+ * Best effort and fire-and-forget: a relay without the HTTP origin, or none
+ * at all, leaves the write exactly as valid.
+ *
+ * @param {PlaylistDatabase} db
+ */
+function nudgeReplication(db) {
+	const { origin } = get(relayHttpStatusStore);
+	const dbAddress = addressOf(db);
+	void (async () => {
+		try {
+			if (origin && dbAddress) {
+				const controller = new AbortController();
+				const timeout = setTimeout(() => controller.abort(), 30_000);
+				fetch(`${origin}/pinning/sync`, {
+					method: 'POST',
+					headers: { 'content-type': 'application/json' },
+					body: JSON.stringify({ dbAddress }),
+					signal: controller.signal
+				})
+					.catch(() => undefined)
+					.finally(() => clearTimeout(timeout));
+			}
+			await new Promise((resolve) => setTimeout(resolve, 250));
+			if (get(playlistDBStore) === db && db.sync?.stop && db.sync.start) {
+				await db.sync.stop();
+				await db.sync.start();
+			}
+		} catch (error) {
+			console.warn('Replication nudge failed:', error);
+		}
+	})();
+}
+
+/**
  * Why a write was refused, in words the page can translate.
  * @param {unknown} error
  * @returns {'denied' | 'failed'}
@@ -319,6 +364,7 @@ export async function addClip(input) {
 
 	try {
 		await db.put(clip);
+		nudgeReplication(db);
 		return { ok: true, clip };
 	} catch (error) {
 		// A denied write throws inside OrbitDB's canAppend gate before anything
@@ -341,6 +387,7 @@ export async function removeClip(id) {
 	if (!db) return { ok: false, kind: 'failed', message: 'No playlist is open.' };
 	try {
 		await db.del(id);
+		nudgeReplication(db);
 		return { ok: true };
 	} catch (error) {
 		console.error('Error removing clip:', error);
@@ -385,6 +432,7 @@ export async function importClips(clips) {
 			};
 		}
 	}
+	if (added) nudgeReplication(db);
 	return { added, skipped };
 }
 
