@@ -160,6 +160,13 @@ The domain needs three DNS records in the `le-space.de` zone, all "DNS only"
 API; it asks for the token hidden. The `_dnslink` CNAME lets Aleph answer the
 `dnslink=/ipfs/<cid>` TXT record itself, so it follows every new publish.
 
+Create the records **before** the first deploy links the domain. A domain
+linked while its name still pointed elsewhere is served by Aleph's gateway
+with a default certificate, and later deploys do not change that. The workflow
+"Relink the custom domain on Aleph" (`relink-domain.yml`, run by hand) detaches
+the domain from the account's `domains` aggregate and attaches it again with
+the same target, so the gateway sets it up anew.
+
 ## Privacy, in short
 
 No server of ours, no account. A playlist is readable by anyone who has its
