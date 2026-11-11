@@ -52,12 +52,14 @@ jobs:
       - name: Unit tests
         run: pnpm run test:unit
 
-      - name: Two-browser E2E (shared playlist, permissions, export, deep link)
+      - name: E2E (shared playlist, permissions, export, deep link, consent, passkey steps)
         id: e2e
         run: >-
           pnpm exec playwright test
           e2e/clips-sharing.spec.js
           e2e/manual-multiaddr-connection.spec.js
+          e2e/consent-identity-choice.spec.js
+          e2e/passkey-steps.spec.js
           --project=chromium
 
       - name: Summarize E2E
