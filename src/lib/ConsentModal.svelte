@@ -32,6 +32,15 @@
 	 * @type {string | null}
 	 */
 	export let notice = null;
+	/**
+	 * Asked when proceed is pressed, before the dialog closes. Returning false
+	 * keeps the dialog open: what is missing can be said (through `error`) and
+	 * put right in the dialog that is already there, instead of closing it,
+	 * failing, and opening it again.
+	 *
+	 * @type {() => boolean}
+	 */
+	export let beforeProceed = () => true;
 
 	/** @type {any} */
 	let introEl;
@@ -110,7 +119,47 @@
 	$: if (ready) introEl.choices = { identity };
 
 	$: proceedLabel = !accepted ? $_('consent.proceedNeedsAccept') : $_('consent.proceed');
-	$: if (ready && show && !introEl.isOpen) void introEl.open();
+	$: if (ready && show && !introEl.isOpen) void reopen();
+
+	/**
+	 * Settles once the element's dialog has finished closing.
+	 *
+	 * `dialog.close()` reports itself in a later task. The element listens for
+	 * that report to notice an Escape, and tells it apart from its own `close()`
+	 * only by a flag that `open()` sets again. A proceed that fails at once
+	 * (nothing to wait for) used to reopen the dialog before the report came:
+	 * the element took it for a second close, sent `close` again and then held
+	 * the dialog for closed while it was showing - so the proceed button did
+	 * nothing from then on. Reopening waits for the report instead.
+	 *
+	 * @type {Promise<void>}
+	 */
+	let dialogSettled = Promise.resolve();
+
+	function waitForDialogToSettle() {
+		const dialog = introEl?.shadowRoot?.querySelector('dialog');
+		dialogSettled = new Promise((resolve) => {
+			const done = () => {
+				clearTimeout(timer);
+				dialog?.removeEventListener('close', done);
+				resolve();
+			};
+			// The report is not sent by every browser build (see the element's own
+			// note on `close`), so it is waited for, not relied on.
+			const timer = setTimeout(done, 150);
+			dialog?.addEventListener('close', done, { once: true });
+		});
+	}
+
+	async function reopen() {
+		await dialogSettled;
+		if (show && introEl && !introEl.isOpen) void introEl.open();
+	}
+
+	function proceed() {
+		if (!beforeProceed()) return;
+		introEl.close();
+	}
 
 	/**
 	 * The element disables its own close control; the proceed button below is
@@ -151,6 +200,7 @@
 		introEl.strings = strings;
 
 		introEl.addEventListener('close', (/** @type {any} */ event) => {
+			waitForDialogToSettle();
 			rememberDecision = event.detail?.remember === true;
 			show = false;
 			dispatch('proceed');
@@ -235,7 +285,7 @@
 			<button
 				type="button"
 				disabled={!accepted || !canProceed}
-				on:click={() => introEl.close()}
+				on:click={proceed}
 				data-testid="consent-proceed"
 				class="rounded-md bg-coral-700 px-6 py-3 font-medium text-white transition-colors hover:bg-coral-800 disabled:cursor-not-allowed disabled:opacity-50"
 			>

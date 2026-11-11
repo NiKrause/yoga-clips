@@ -67,6 +67,9 @@
 	let error = null;
 	/** @type {string | null} */
 	let notice = null;
+	// The identity choice `error` complains about, while it is that complaint.
+	/** @type {string | null} */
+	let complainedAbout = null;
 
 	let showModal = true;
 	let rememberDecision = false;
@@ -149,8 +152,38 @@
 		showToast($_('consent.prfMissing'), 'warning', 12_000);
 	}
 
+	/**
+	 * Whether the identity choice can be carried out, asked before the consent
+	 * dialog closes. A new passkey needs its label; without one the dialog stays
+	 * where it is and says so.
+	 */
+	function identityChoiceIsComplete() {
+		if (identityMode === 'create' && !passkeyLabel.trim()) {
+			error = $_('consent.errorNeedsLabel');
+			complainedAbout = identityChoice(identityMode, passkeyLabel);
+			return false;
+		}
+		return true;
+	}
+
+	/** @param {string} mode @param {string} label */
+	const identityChoice = (mode, label) => `${mode}\n${label}`;
+
+	// The complaint goes when what it complained about is changed, not only on
+	// the next press: a message that stays under a field filled in since reads
+	// as "still wrong".
+	$: forgetChoiceComplaint(identityChoice(identityMode, passkeyLabel));
+
+	/** @param {string} choice */
+	function forgetChoiceComplaint(choice) {
+		if (complainedAbout === null || choice === complainedAbout) return;
+		complainedAbout = null;
+		error = null;
+	}
+
 	const handleModalClose = async () => {
 		error = null;
+		complainedAbout = null;
 		try {
 			if (rememberDecision) localStorage.setItem(CONSENT_KEY, 'true');
 		} catch {
@@ -160,7 +193,7 @@
 			// WebAuthn calls must run inside the user gesture of the proceed click.
 			let passkeyCredential = null;
 			if (identityMode === 'create') {
-				if (!passkeyLabel.trim()) throw new IdentityChoiceError($_('consent.errorNeedsLabel'));
+				// The label was asked for before the dialog closed (identityChoiceIsComplete).
 				passkeyCredential = await createPasskeyCredential({
 					userId: passkeyLabel.trim(),
 					displayName: passkeyLabel.trim()
@@ -310,6 +343,7 @@
 		identity={identityMode}
 		{error}
 		{notice}
+		beforeProceed={identityChoiceIsComplete}
 		on:proceed={handleModalClose}
 	>
 		<svelte:fragment slot="before-confirmation">
