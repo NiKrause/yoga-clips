@@ -23,6 +23,8 @@ import {
 	clearWebAuthnCredential
 } from '@le-space/orbitdb-identity-provider-webauthn-did';
 
+import { PasskeyStepCancelled } from './passkey-steps.js';
+
 const CREDENTIAL_STORAGE_KEY = 'yogaClips.webauthnCredential';
 
 /**
@@ -51,6 +53,9 @@ export async function createPasskeyCredential({ userId, displayName }) {
 			payload
 		});
 	} catch (error) {
+		// "Cancel" between two prompts ends the flow; it is not an
+		// authenticator without largeBlob.
+		if (error instanceof PasskeyStepCancelled) throw error;
 		console.warn('largeBlob write skipped (falling back to localStorage only):', error);
 	}
 
@@ -75,6 +80,7 @@ export async function recoverPasskeyCredential() {
 			}
 		}
 	} catch (error) {
+		if (error instanceof PasskeyStepCancelled) throw error;
 		console.warn('largeBlob recovery unavailable, trying localStorage:', error);
 	}
 

@@ -1,5 +1,5 @@
 import { test, expect } from '@playwright/test';
-import { acceptNotice, isConsentOpen, waitForConsent } from './consent.mjs';
+import { acceptNotice, isConsentOpen, waitForConsent, walkPasskeySteps } from './consent.mjs';
 
 // The consent dialog asks again when the identity choice cannot be carried
 // out. Asking again must leave a dialog that still works: a first press with
@@ -52,6 +52,7 @@ test.describe('The identity choice in the consent dialog', () => {
 		await page.waitForFunction(
 			() => document.querySelector('[data-testid="consent-modal"]')?.isOpen !== true
 		);
+		await walkPasskeySteps(page);
 		await expect(page.getByTestId('new-playlist-create')).toBeVisible({ timeout });
 		await expect(page.getByTestId('own-did-value')).toHaveAttribute('data-did', /^did:key:/);
 	});

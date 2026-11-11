@@ -92,6 +92,17 @@ browser ──libp2p (WebSocket/WebRTC)──▶ orbitdb-relay ◀── another
   [`src/lib/passkey-identity.js`](src/lib/passkey-identity.js). Passkeys are
   bound to the origin: one created on `localhost` does not exist on the
   deployed domain.
+- **Passkey prompts** are announced. A new passkey is asked four times before
+  the app is ready: to be created, to note its identity (largeBlob), for the
+  secret the signing key is derived from (PRF), and to confirm that key. The
+  consent dialog says so beforehand, and before each prompt after the first a
+  step dialog says what it is for and waits for "Continue"
+  ([`src/lib/passkey-steps.js`](src/lib/passkey-steps.js), after Belege). An
+  existing passkey takes one prompt in a browser that has seen it, up to three
+  in one that has not. "Cancel" between two prompts ends the start and keeps
+  the passkey; the step before the key offers none, because the provider takes
+  a refused PRF read for an authenticator without PRF and would settle for a
+  key that exists in this browser only.
 - **Networking** is simple-todo's: a relay from
   [NiKrause/orbitdb-relay](https://github.com/NiKrause/orbitdb-relay) for
   discovery and replication, WebRTC between browsers where possible. Nothing

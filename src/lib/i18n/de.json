@@ -84,7 +84,40 @@
 			"identityPasskey": "Dein Passkey weist dich gegenüber den anderen Geräten aus. Niemand sonst kann in deinem Namen schreiben.",
 			"identityAnonymous": "Du verwendest eine zufällige Identität, die es nur in diesem Browser gibt. Löschst du seinen Speicher, ist sie weg - und mit ihr das Schreibrecht an deinen Playlists.",
 			"cookies": "Es werden keine Tracking-Cookies verwendet. Außer deinen Daten liegen auf diesem Gerät nur Sprache, Farbschema und die Entscheidung, diesen Hinweis nicht mehr zu zeigen."
-		}
+		},
+		"identityCreatePrompts": "Der Passkey wird dabei viermal gefragt: anlegen, Identität bei sich vermerken, Schlüssel zum Unterschreiben, Schlüssel bestätigen. Vor jeder weiteren Abfrage steht, wofür sie ist.",
+		"identityExistingPrompts": "Eine Abfrage, auf einem neuen Gerät bis zu drei. Vor jeder weiteren steht, wofür sie ist."
+	},
+	"passkeySteps": {
+		"count": "Passkey-Abfrage {n} von {of}",
+		"countOpen": "Passkey-Abfrage {n}",
+		"purpose": {
+			"create": {
+				"title": "Jetzt der neue Passkey",
+				"why": "Dein Gerät legt den Passkey an und lässt ihn dich bestätigen."
+			},
+			"store": {
+				"title": "Jetzt merkt sich der Passkey, welche Identität zu ihm gehört",
+				"why": "Der Passkey legt bei sich ab, welche Identität zu ihm gehört. So findet Yoga Clips sie wieder, wenn dieser Browser seine Daten verliert oder du ein anderes Gerät nimmst. Nicht jeder Passkey kann das; dann bleibt die Angabe nur in diesem Browser."
+			},
+			"find": {
+				"title": "Jetzt sagt der Passkey, welche Identität zu ihm gehört",
+				"why": "Der Passkey gibt heraus, was er sich über seine Identität gemerkt hat."
+			},
+			"key": {
+				"title": "Jetzt der Schlüssel, mit dem deine Clips unterschrieben werden",
+				"why": "Dein Passkey gibt Yoga Clips ein Geheimnis. Daraus entsteht der Schlüssel, der deine Clips unterschreibt - auf jedem Gerät, auf dem du diesen Passkey nutzt, derselbe."
+			},
+			"proof": {
+				"title": "Jetzt die Bestätigung, dass dieser Schlüssel dir gehört",
+				"why": "Dein Passkey bestätigt einmal, dass der Schlüssel zu ihm gehört. Andere Geräte prüfen das, bevor sie deine Clips annehmen. Dieser Browser merkt sich die Bestätigung und fragt nicht noch einmal danach."
+			}
+		},
+		"notALoop": "Jede Abfrage hat ihren eigenen Zweck, es ist keine Wiederholung. Mit einem Sicherheitsschlüssel: berühren und, falls gefragt, die PIN eingeben.",
+		"continue": "Weiter",
+		"cancel": "Abbrechen",
+		"cancelled": "Abgebrochen, bevor der Passkey gefragt wurde. Du kannst jederzeit neu beginnen.",
+		"cancelledCreated": "Abgebrochen. Dein neuer Passkey ist schon angelegt - mit „Vorhandenen Passkey verwenden“ geht es dort weiter."
 	},
 	"playlist": {
 		"heading": "Playlists",

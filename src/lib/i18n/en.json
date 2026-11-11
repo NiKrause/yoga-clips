@@ -84,7 +84,40 @@
 			"identityPasskey": "Your passkey identifies you to the other devices. Nobody else can write as you.",
 			"identityAnonymous": "You are using a random identity that exists only in this browser. Clear its storage and it is gone - along with the right to write to your playlists.",
 			"cookies": "No tracking cookies are used. Besides your data, the only things saved on this device are your language, theme, and the choice to hide this notice."
-		}
+		},
+		"identityCreatePrompts": "The passkey is asked four times on the way: to be created, to note its identity, for the signing key, and to confirm that key. Before each further prompt the app says what it is for.",
+		"identityExistingPrompts": "One prompt; on a new device up to three. Before each further prompt the app says what it is for."
+	},
+	"passkeySteps": {
+		"count": "Passkey prompt {n} of {of}",
+		"countOpen": "Passkey prompt {n}",
+		"purpose": {
+			"create": {
+				"title": "Now the new passkey",
+				"why": "Your device creates the passkey and asks you to confirm it."
+			},
+			"store": {
+				"title": "Now the passkey notes which identity is its own",
+				"why": "The passkey keeps a note of the identity that belongs to it. That is how Yoga Clips finds it again when this browser loses its data or you pick up another device. Not every passkey can do this; the note then stays in this browser only."
+			},
+			"find": {
+				"title": "Now the passkey says which identity is its own",
+				"why": "The passkey hands out the note it keeps of its identity."
+			},
+			"key": {
+				"title": "Now the key your clips are signed with",
+				"why": "Your passkey gives Yoga Clips a secret. From it comes the key that signs your clips - the same key on every device you use this passkey on."
+			},
+			"proof": {
+				"title": "Now the confirmation that this key is yours",
+				"why": "Your passkey confirms once that the signing key belongs to it. Other devices check that before they accept your clips. This browser keeps the confirmation and does not ask for it again."
+			}
+		},
+		"notALoop": "Each prompt has a purpose of its own; it is not a repeat. With a security key: touch it and, if asked, enter its PIN.",
+		"continue": "Continue",
+		"cancel": "Cancel",
+		"cancelled": "Cancelled before the passkey was asked. You can start again whenever you like.",
+		"cancelledCreated": "Cancelled. Your new passkey already exists - \"Use an existing passkey\" carries on from there."
 	},
 	"playlist": {
 		"heading": "Playlists",

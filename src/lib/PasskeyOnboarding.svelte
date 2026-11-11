@@ -27,7 +27,10 @@
 			label: $_('consent.identityCreate'),
 			hint: hasStoredPasskey
 				? $_('consent.identityCreateHintAnother')
-				: $_('consent.identityCreateHint')
+				: $_('consent.identityCreateHint'),
+			// Said before the first prompt, not discovered at the third: four
+			// prompts in a row look like a fault to anyone who was not told.
+			prompts: $_('consent.identityCreatePrompts')
 		},
 		{
 			value: 'existing',
@@ -42,12 +45,14 @@
 			// recoverable here and disabling it would take that away.
 			hint: hasStoredPasskey
 				? $_('consent.identityExistingFound')
-				: $_('consent.identityExistingNone')
+				: $_('consent.identityExistingNone'),
+			prompts: $_('consent.identityExistingPrompts')
 		},
 		{
 			value: 'anonymous',
 			label: $_('consent.identityAnonymous'),
-			hint: $_('consent.identityAnonymousHint')
+			hint: $_('consent.identityAnonymousHint'),
+			prompts: ''
 		}
 	];
 </script>
@@ -68,6 +73,11 @@
 				<span>
 					<span class="font-medium">{option.label}</span>
 					<span class="block text-xs text-gray-500">{option.hint}</span>
+					{#if option.prompts && mode === option.value}
+						<span class="mt-1 block text-xs text-gray-500" data-testid="passkey-prompts-hint">
+							{option.prompts}
+						</span>
+					{/if}
 				</span>
 			</label>
 		{/each}

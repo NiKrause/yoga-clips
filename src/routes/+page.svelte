@@ -3,6 +3,8 @@
 	import { _ } from '$lib/i18n/index.js';
 	import { peerIdStore, initializationStore, ownDidStore, libp2pStore } from '$lib/p2p-stores.js';
 	import PasskeyOnboarding from '$lib/PasskeyOnboarding.svelte';
+	import PasskeyStepDialog from '$lib/PasskeyStepDialog.svelte';
+	import { beginPasskeyFlow, PROMPTS_TO_CREATE } from '$lib/passkey-steps.js';
 	import DidBadge from '$lib/DidBadge.svelte';
 	import { createPasskeyCredential, recoverPasskeyCredential } from '$lib/passkey-identity.js';
 	import {
@@ -189,6 +191,15 @@
 		} catch {
 			// ignore storage errors
 		}
+		// A passkey is asked several times before the app is ready. The flow
+		// counts the prompts of this start and, after the first, says what each
+		// one is for before it comes (passkey-steps.js). A new passkey takes four;
+		// how many an existing one takes depends on what this browser still holds.
+		const chosen = identityMode;
+		const flow =
+			chosen === 'anonymous'
+				? null
+				: beginPasskeyFlow({ of: chosen === 'create' ? PROMPTS_TO_CREATE : null });
 		try {
 			// WebAuthn calls must run inside the user gesture of the proceed click.
 			let passkeyCredential = null;
@@ -217,12 +228,23 @@
 			warnIfIdentityCannotTravel(passkeyCredential);
 		} catch (err) {
 			showModal = true;
+			if (flow?.cancelled) {
+				// "Cancel" between two prompts is a decision, not a failure. A new
+				// passkey that was already created stays: pressing proceed again
+				// must carry on with it, not register a second one.
+				const created = chosen === 'create' && flow.completed > 0;
+				error = $_(created ? 'passkeySteps.cancelledCreated' : 'passkeySteps.cancelled');
+				if (created) identityMode = 'existing';
+				return;
+			}
 			const reason = err instanceof Error ? err.message : String(err);
 			error =
 				err instanceof IdentityChoiceError
 					? reason
 					: $_('consent.errorStart', { values: { reason } });
 			console.error('P2P initialization failed:', err);
+		} finally {
+			flow?.end();
 		}
 	};
 
@@ -334,6 +356,8 @@
 	<meta name="viewport" content="width=device-width, initial-scale=1.0" />
 	<meta name="description" content={$_('app.tagline')} />
 </svelte:head>
+
+<PasskeyStepDialog />
 
 {#if showModal}
 	<ConsentModal

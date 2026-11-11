@@ -72,6 +72,55 @@ export async function rememberDecision(page) {
 }
 
 /**
+ * Press "Continue" on every passkey step until the identity is there.
+ *
+ * A passkey is asked several times in a row, and the app says what each prompt
+ * after the first is for and waits (`passkey-steps.js`). The virtual
+ * authenticator answers the prompts by itself; the steps in between are the
+ * person's, so a spec that wants a passkey identity walks them like one.
+ *
+ * Returns the steps it saw, as `{ count, purpose }`, for a spec that cares.
+ *
+ * @param {import('@playwright/test').Page} page
+ * @param {{ timeout?: number }} [options]
+ */
+export async function walkPasskeySteps(page, { timeout = 90_000 } = {}) {
+	const next = page.getByTestId('passkey-step-continue');
+	const did = page.locator('[data-testid="own-did-value"][data-did^="did:key:"]');
+	/** @type {Array<{ count: string, purpose: string | null }>} */
+	const seen = [];
+	const deadline = Date.now() + timeout;
+	while (Date.now() < deadline) {
+		if (await next.isVisible()) {
+			const count = (await page.getByTestId('passkey-step-count').innerText()).trim();
+			seen.push({
+				count,
+				purpose: await page.getByTestId('passkey-step-title').getAttribute('data-purpose')
+			});
+			await next.click();
+			// Gone, or already the next one: the virtual authenticator answers
+			// at once, so waiting for the dialog to be hidden can wait for ever.
+			await page.waitForFunction(
+				(answered) => {
+					const dialog = document.querySelector('[data-testid="passkey-step-dialog"]');
+					const shown = document.querySelector('[data-testid="passkey-step-count"]');
+					return !dialog?.open || shown?.textContent?.trim() !== answered;
+				},
+				count,
+				{ timeout: Math.max(1, deadline - Date.now()) }
+			);
+			continue;
+		}
+		if ((await did.count()) > 0) return seen;
+		if (await isConsentOpen(page)) {
+			throw new Error('the consent dialog came back before the passkey identity was ready');
+		}
+		await page.waitForTimeout(150);
+	}
+	throw new Error(`the passkey identity was not ready within ${timeout} ms`);
+}
+
+/**
  * The whole walk: choose an identity, accept, proceed.
  *
  * `identity` defaults to what the app defaults to, so a caller that does not
@@ -96,4 +145,7 @@ export async function passConsent(page, { identity, label, remember = false } = 
 	await page.waitForFunction(
 		() => document.querySelector('[data-testid="consent-modal"]')?.isOpen !== true
 	);
+	// With a passkey the app is not ready yet: the further prompts each wait
+	// for their "Continue".
+	if (identity === 'create' || identity === 'existing') await walkPasskeySteps(page);
 }
