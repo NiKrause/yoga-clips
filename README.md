@@ -145,7 +145,9 @@ pnpm exec playwright test e2e/clips-sharing.spec.js --project=chromium
 `.github/workflows/deploy.yml` runs the unit and E2E tests and publishes the
 static build to Aleph IPFS, linking `yoga-clips.le-space.de` — the same path
 simple-todo takes. It needs the `ALEPH_PRIVATE_KEY` secret; without it the
-build is only checked and publishing is skipped with a warning.
+build is only checked and publishing is skipped with a warning. Of the site's
+uploads the newest three are kept and older ones forgotten, and the run fails
+when the domain does not serve the new build over HTTPS within 20 minutes.
 
 The domain needs three DNS records in the `le-space.de` zone, all "DNS only"
 (not proxied), like every other le-space.de site on Aleph:

@@ -152,7 +152,7 @@ jobs:
 
       - name: Install isolated Aleph deploy tooling
         if: steps.key.outputs.deploy == 'true' && (github.event_name == 'push' || github.event_name == 'workflow_dispatch')
-        run: npm install --prefix /tmp/le-space-deployer @le-space/node@0.6.22 --ignore-scripts
+        run: npm install --prefix /tmp/le-space-deployer @le-space/node@0.12.4 --ignore-scripts
 
       - name: Publish to Aleph IPFS
         if: steps.key.outputs.deploy == 'true' && (github.event_name == 'push' || github.event_name == 'workflow_dispatch')
@@ -163,6 +163,10 @@ jobs:
           ALEPH_SITE_PIN: 'true'
           ALEPH_SITE_NAME: yoga-clips
           ALEPH_SITE_CHANNEL: ALEPH-CLOUDSOLUTIONS
+          # Every upload is storage the account pays for as long as it is
+          # kept. The deployer forgets this site's uploads beyond the newest
+          # three, and never one a domain still points at.
+          ALEPH_SITE_RETENTION_KEEP_COUNT: '3'
           ALEPH_PRIVATE_KEY: ${{ secrets.ALEPH_PRIVATE_KEY }}
         run: |
           for attempt in 1 2 3; do
@@ -201,13 +205,20 @@ jobs:
       - run: pnpm install --frozen-lockfile
 
       - name: Install isolated Aleph deploy tooling
-        run: npm install --prefix /tmp/le-space-deployer @le-space/node@0.6.22 --ignore-scripts
+        run: npm install --prefix /tmp/le-space-deployer @le-space/node@0.12.4 --ignore-scripts
 
       - name: Link custom domain
         if: inputs.domain != '' || env.ALEPH_MAIN_SITE_DOMAIN != ''
         id: domain
         env:
           ALEPH_VM_MODE: site-domain-link
+          ALEPH_SITE_NAME: yoga-clips
+          ALEPH_SITE_CHANNEL: ALEPH-CLOUDSOLUTIONS
+          # The deployer waits up to 20 minutes for the domain to serve the
+          # new build over HTTPS and, by default, only warns when that runs
+          # out. Here it fails: a deploy whose domain does not answer is not
+          # a successful deploy.
+          ALEPH_SITE_DOMAIN_VERIFY_ON_TIMEOUT: fail
           ALEPH_SITE_ITEM_HASH: ${{ needs.build-and-deploy.outputs.item_hash }}
           ALEPH_SITE_IPFS_CID: ${{ needs.build-and-deploy.outputs.ipfs_cid }}
           ALEPH_SITE_IPFS_CID_V0: ${{ needs.build-and-deploy.outputs.ipfs_cid_v0 }}
