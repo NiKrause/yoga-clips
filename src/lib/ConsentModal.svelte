@@ -119,42 +119,11 @@
 	$: if (ready) introEl.choices = { identity };
 
 	$: proceedLabel = !accepted ? $_('consent.proceedNeedsAccept') : $_('consent.proceed');
-	$: if (ready && show && !introEl.isOpen) void reopen();
-
-	/**
-	 * Settles once the element's dialog has finished closing.
-	 *
-	 * `dialog.close()` reports itself in a later task. The element listens for
-	 * that report to notice an Escape, and tells it apart from its own `close()`
-	 * only by a flag that `open()` sets again. A proceed that fails at once
-	 * (nothing to wait for) used to reopen the dialog before the report came:
-	 * the element took it for a second close, sent `close` again and then held
-	 * the dialog for closed while it was showing - so the proceed button did
-	 * nothing from then on. Reopening waits for the report instead.
-	 *
-	 * @type {Promise<void>}
-	 */
-	let dialogSettled = Promise.resolve();
-
-	function waitForDialogToSettle() {
-		const dialog = introEl?.shadowRoot?.querySelector('dialog');
-		dialogSettled = new Promise((resolve) => {
-			const done = () => {
-				clearTimeout(timer);
-				dialog?.removeEventListener('close', done);
-				resolve();
-			};
-			// The report is not sent by every browser build (see the element's own
-			// note on `close`), so it is waited for, not relied on.
-			const timer = setTimeout(done, 150);
-			dialog?.addEventListener('close', done, { once: true });
-		});
-	}
-
-	async function reopen() {
-		await dialogSettled;
-		if (show && introEl && !introEl.isOpen) void introEl.open();
-	}
+	// Also after a proceed that failed at once, in the very handler of the
+	// close: the element tells the late report of its own close from an Escape
+	// since 0.14.1. Before that, reopening here left it holding the dialog for
+	// closed while it was showing, and the proceed button dead.
+	$: if (ready && show && !introEl.isOpen) void introEl.open();
 
 	function proceed() {
 		if (!beforeProceed()) return;
@@ -200,7 +169,6 @@
 		introEl.strings = strings;
 
 		introEl.addEventListener('close', (/** @type {any} */ event) => {
-			waitForDialogToSettle();
 			rememberDecision = event.detail?.remember === true;
 			show = false;
 			dispatch('proceed');
