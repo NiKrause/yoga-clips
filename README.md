@@ -173,12 +173,10 @@ The domain needs three DNS records in the `le-space.de` zone, all "DNS only"
 API; it asks for the token hidden. The `_dnslink` CNAME lets Aleph answer the
 `dnslink=/ipfs/<cid>` TXT record itself, so it follows every new publish.
 
-Create the records **before** the first deploy links the domain. A domain
-linked while its name still pointed elsewhere is served by Aleph's gateway
-with a default certificate, and later deploys do not change that. The workflow
-"Relink the custom domain on Aleph" (`relink-domain.yml`, run by hand) detaches
-the domain from the account's `domains` aggregate and attaches it again with
-the same target, so the gateway sets it up anew.
+Create the records **before** the first deploy links the domain, and expect
+Aleph's gateway to take a while with the certificate of a new domain: it
+served this one with a default certificate for two days. Detaching the domain
+and attaching it again did not hurry that.
 
 ## Privacy, in short
 
