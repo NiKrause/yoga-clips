@@ -125,8 +125,20 @@
 	// closed while it was showing, and the proceed button dead.
 	$: if (ready && show && !introEl.isOpen) void introEl.open();
 
+	/**
+	 * The one gate out of this dialog: the statement accepted, the app's own
+	 * condition met, and nothing missing for what was chosen.
+	 *
+	 * Asked by the proceed button and again by every close the element
+	 * reports. The button is not the only way a dialog closes - the browser
+	 * closes one on Escape - and a close is only a decision when it passes here.
+	 */
+	function mayProceed() {
+		return introEl?.accepted === true && canProceed && beforeProceed();
+	}
+
 	function proceed() {
-		if (!beforeProceed()) return;
+		if (!mayProceed()) return;
 		introEl.close();
 	}
 
@@ -169,6 +181,12 @@
 		introEl.strings = strings;
 
 		introEl.addEventListener('close', (/** @type {any} */ event) => {
+			// A close that does not pass the gate is not a decision: the dialog
+			// comes back, and nothing starts.
+			if (!mayProceed()) {
+				void introEl.open();
+				return;
+			}
 			rememberDecision = event.detail?.remember === true;
 			show = false;
 			dispatch('proceed');
