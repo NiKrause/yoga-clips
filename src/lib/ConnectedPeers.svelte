@@ -35,6 +35,7 @@
 	// eslint-disable-next-line svelte/prefer-svelte-reactivity
 	const peerConnectionTransports = new Map();
 	/** @type {Map<string, FailedPeerDialState>} */
+	// eslint-disable-next-line svelte/prefer-svelte-reactivity
 	const failedPeerDialState = new Map();
 	/** @type {EventListenerEntry[]} */
 	let eventListeners = [];

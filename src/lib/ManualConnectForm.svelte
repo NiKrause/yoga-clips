@@ -196,7 +196,7 @@
 				{:else if discoveredMultiaddrs.length === 0}
 					<option value="">No relay addresses discovered</option>
 				{:else}
-					{#each discoveredMultiaddrs as address}
+					{#each discoveredMultiaddrs as address, index (`${index}:${address}`)}
 						<option value={address} data-ping-verified={addressesPingVerified ? 'true' : undefined}
 							>{describeBootstrapMultiaddr(address)}</option
 						>

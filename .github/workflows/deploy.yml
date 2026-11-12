@@ -36,8 +36,6 @@ jobs:
         uses: actions/checkout@v6
 
       - uses: pnpm/action-setup@v6
-        with:
-          version: 9
 
       - uses: actions/setup-node@v6
         with:
@@ -48,6 +46,9 @@ jobs:
 
       - name: No preview origin is written down by hand
         run: pnpm run check:preview-origin
+
+      - name: Lint
+        run: pnpm run lint
 
       - name: Unit tests
         run: pnpm run test:unit
@@ -125,8 +126,6 @@ jobs:
         uses: actions/checkout@v6
 
       - uses: pnpm/action-setup@v6
-        with:
-          version: 9
 
       - uses: actions/setup-node@v6
         with:
@@ -196,8 +195,6 @@ jobs:
         uses: actions/checkout@v6
 
       - uses: pnpm/action-setup@v6
-        with:
-          version: 9
 
       - uses: actions/setup-node@v6
         with:
