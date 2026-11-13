@@ -9,6 +9,14 @@
    (bg-surface, text-heading, text-coral, …) is theme-aware. */
 @custom-variant dark (&:where(.dark, .dark *));
 
+/* The wordmark's typeface (Le Space Belege's): Sora, bundled, OFL 1.1. */
+@font-face {
+	font-family: 'Sora';
+	src: url('./lib/fonts/sora-latin-wght-normal.woff2') format('woff2');
+	font-weight: 100 900;
+	font-display: swap;
+}
+
 /* Light mode (default) — Le-Space light palette */
 :root {
 	--bg: #edf1f8; /* Starlight */
@@ -19,6 +27,9 @@
 	--text: #41506b;
 	--faint: #6b7891;
 	--coral: #e8503f; /* light Coral */
+	/* The signet (brand/): amber and ink by day */
+	--mark-accent: #ffb020;
+	--mark-ink: #0f1b2d;
 	--cyan: #0e86c4; /* light Cyan */
 	--identity: #1fa971;
 	--data: #c7891a;
@@ -36,6 +47,9 @@
 	--text: #a8b3c7; /* Stardust */
 	--faint: #5c677a;
 	--coral: #ff6b5b; /* Signal Coral */
+	/* … lime and snow at night */
+	--mark-accent: #c6f24e;
+	--mark-ink: #f4f6fb;
 	--cyan: #58c7f3; /* Sync Cyan */
 	--identity: #3edc97;
 	--data: #ffc24b;

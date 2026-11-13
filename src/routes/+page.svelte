@@ -30,7 +30,7 @@
 	import SocialIcons from '$lib/SocialIcons.svelte';
 	import ThemeToggle from '$lib/ThemeToggle.svelte';
 	import LanguageSwitcher from '$lib/LanguageSwitcher.svelte';
-	import LeSpaceLogo from '$lib/LeSpaceLogo.svelte';
+	import YogaClipsLogo from '$lib/YogaClipsLogo.svelte';
 	import ToastNotification from '$lib/ToastNotification.svelte';
 	import P2PStatusNav from '$lib/P2PStatusNav.svelte';
 	import ErrorAlert from '$lib/ErrorAlert.svelte';
@@ -418,10 +418,20 @@
 <main class="container mx-auto max-w-5xl p-4 sm:p-6" hidden={cinema}>
 	<header class="mb-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
 		<div class="flex flex-1 items-center gap-3">
-			<LeSpaceLogo size={52} />
+			<YogaClipsLogo size={56} label="" />
 			<div>
-				<h1 class="text-2xl font-bold text-heading sm:text-3xl">{$_('app.title')}</h1>
-				<p class="mt-1 text-sm text-faint">{$_('app.tagline')}</p>
+				<p
+					class="font-[Sora] text-[11px] font-medium tracking-[0.32em] text-infra"
+					aria-hidden="true"
+				>
+					LE SPACE
+				</p>
+				<h1
+					class="font-[Sora] text-3xl leading-none font-bold tracking-tight text-heading lowercase sm:text-4xl"
+				>
+					{$_('app.title')}
+				</h1>
+				<p class="mt-2 text-sm text-faint">{$_('app.tagline')}</p>
 			</div>
 		</div>
 		<div class="flex flex-shrink-0 flex-wrap items-center gap-2 self-start sm:self-auto">
