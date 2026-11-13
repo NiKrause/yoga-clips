@@ -7,6 +7,10 @@ relaunch issue; nothing here is built into the app.
 - `mockups.html` — the three directions side by side, phone size, made-up
   clips, teachers and playlists. Open it in a browser; `?theme=dark` shows
   the night mode.
+- `b-bibliothek.html` — direction B, the one chosen, worked out with the
+  video embedded in the page: the library with "continue", a playlist with
+  the player on top, and an upright clip. With `b-bibliothek-light.png` and
+  `b-bibliothek-dark.png`.
 - `mockups-light.png`, `mockups-dark.png` — the same page rendered, for the
   issue and the pull request.
 
