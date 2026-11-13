@@ -21,6 +21,11 @@
 	/** @type {(clip: Clip) => void} */
 	export let onremove = () => {};
 	import { doneToday, doneCount } from './clips/done.js';
+
+	// Who added a clip is worth a word only where more than one person adds
+	// to the playlist: someone else's playlist, or one with someone else's
+	// clips in it. Never as a raw identity.
+	$: shared = !isOwner || clips.some((clip) => clip.addedBy !== identityId);
 </script>
 
 <section class="mt-4" data-testid="clip-grid">
@@ -32,6 +37,11 @@
 					doneToday={doneToday(doneLog, clip.id)}
 					doneCount={doneCount(doneLog, clip.id)}
 					canRemove={isOwner || (Boolean(identityId) && clip.addedBy === identityId)}
+					author={shared
+						? Boolean(identityId) && clip.addedBy === identityId
+							? 'you'
+							: 'other'
+						: null}
 					{onplay}
 					{ondone}
 					{onundo}

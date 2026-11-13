@@ -1,11 +1,12 @@
 <script>
 	import { onDestroy } from 'svelte';
+	import { _ } from '$lib/i18n/index.js';
 	import { relayHttpStatusStore } from './relay-status.js';
 	import { relayHttpOriginForPeer } from './multiaddr-utils.js';
 	import { getRelayBootstrapAddrs } from './relay-bootstrap-addrs.js';
 
 	/** @typedef {'pending' | 'active' | 'complete' | 'error'} StepStatus */
-	/** @typedef {{ label: string, description: string, status: StepStatus }} StatusStep */
+	/** @typedef {{ key?: string, label: string, description: string, status: StepStatus }} StatusStep */
 
 	/** @type {{ isInitializing: boolean, isInitialized: boolean, error: string | null, steps: StatusStep[] }} */
 	export let initialization;
@@ -44,14 +45,15 @@
 	$: initializationComplete = initialization?.isInitialized === true;
 	$: connectivitySteps = [
 		{
-			label: 'Relay connected',
-			description: getRelayDescription(),
+			key: 'network.step.relay',
+			label: $_('network.step.relay.label'),
+			description: getRelayDescription($_),
 			status: relayConnected ? 'complete' : initializationComplete ? 'active' : 'pending'
 		},
 		{
-			label: 'WebRTC connected',
-			description:
-				'A live libp2p connection using WebRTC is available. This normally appears after another browser peer has been discovered.',
+			key: 'network.step.webrtc',
+			label: $_('network.step.webrtc.label'),
+			description: $_('network.step.webrtc.description'),
 			status: webRTCConnected
 				? 'complete'
 				: initializationComplete && relayConnected
@@ -59,13 +61,24 @@
 					: 'pending'
 		}
 	];
-	$: allSteps = [...(initialization?.steps ?? []), ...connectivitySteps];
+	// The initialization steps carry an i18n key; their English label and
+	// description stay in the store for anything else that reads it.
+	$: initializationSteps = (initialization?.steps ?? []).map((step) =>
+		step.key
+			? {
+					...step,
+					label: $_(`${step.key}.label`),
+					description: $_(`${step.key}.description`)
+				}
+			: step
+	);
+	$: allSteps = [...initializationSteps, ...connectivitySteps];
 	$: allComplete = allSteps.length > 0 && allSteps.every((step) => step.status === 'complete');
 	$: currentStep =
 		allSteps.find((step) => step.status === 'active') ??
 		allSteps.find((step) => step.status === 'pending') ??
 		allSteps.find((step) => step.status === 'error');
-	$: statusLabel = getStatusLabel(allComplete, currentStep);
+	$: statusLabel = getStatusLabel(allComplete, currentStep, $_);
 
 	$: if (libp2p !== observedLibp2p) {
 		observeConnections(libp2p);
@@ -193,19 +206,21 @@
 		);
 	}
 
-	function getRelayDescription() {
-		const base =
-			'A live WebSocket connection to a relay/bootstrap peer is available for discovery, pubsub and circuit relay traffic.';
-		if (!relayConnected) return `${base} No relay is connected yet.`;
-		if (!relayHealthOrigin)
-			return `${base} No HTTPS health URL can be derived from the connected relay address.`;
+	/** @param {(id: string, options?: any) => string} t */
+	function getRelayDescription(t) {
+		const base = t('network.step.relay.description');
+		const origin = relayHealthOrigin;
+		if (!relayConnected) return `${base} ${t('network.step.relay.notConnected')}`;
+		if (!relayHealthOrigin) return `${base} ${t('network.step.relay.noHealthUrl')}`;
 		if (relayHealthStatus === 'loading')
-			return `${base} Reading the OrbitDB relay version from ${relayHealthOrigin}/health…`;
+			return `${base} ${t('network.step.relay.loading', { values: { origin } })}`;
 		if (relayHealthStatus === 'verified' && relayVersion)
-			return `${base} OrbitDB relay version ${relayVersion}; health and peer ID verified at ${relayHealthOrigin}/health.`;
+			return `${base} ${t('network.step.relay.verifiedVersion', {
+				values: { origin, version: relayVersion }
+			})}`;
 		if (relayHealthStatus === 'verified')
-			return `${base} Health and peer ID verified at ${relayHealthOrigin}/health. This relay does not expose its OrbitDB relay version.`;
-		return `${base} ${relayHealthOrigin}/health could not be verified, so its OrbitDB relay version is unavailable.`;
+			return `${base} ${t('network.step.relay.verified', { values: { origin } })}`;
+		return `${base} ${t('network.step.relay.unverified', { values: { origin } })}`;
 	}
 
 	function resetRelayHealth() {
@@ -230,14 +245,16 @@
 	/**
 	 * @param {boolean} complete
 	 * @param {StatusStep | undefined} step
+	 * @param {(id: string, options?: any) => string} t
 	 */
-	function getStatusLabel(complete, step) {
-		if (complete) return 'P2P network ready';
-		if (step?.label === 'Relay connected') return 'Connecting to relay';
-		if (step?.label === 'WebRTC connected') return 'Waiting for WebRTC connection';
-		if (step?.status === 'error') return `Failed to initialize ${step.label}`;
-		if (step) return `Initializing ${step.label}`;
-		return 'Preparing P2P network';
+	function getStatusLabel(complete, step, t) {
+		if (complete) return t('network.status.ready');
+		if (step?.key === 'network.step.relay') return t('network.status.connectingRelay');
+		if (step?.key === 'network.step.webrtc') return t('network.status.waitingWebrtc');
+		if (step?.status === 'error')
+			return t('network.status.failed', { values: { step: step.label } });
+		if (step) return t('network.status.initializing', { values: { step: step.label } });
+		return t('network.status.preparing');
 	}
 
 	onDestroy(() => {
@@ -248,7 +265,7 @@
 
 <nav
 	class="card mb-6 px-4 py-3"
-	aria-label="P2P initialization and connection status"
+	aria-label={$_('network.status.navLabel')}
 	data-testid="p2p-status-nav"
 >
 	<div class="mb-2 flex items-center gap-2 text-sm font-medium text-text" aria-live="polite">
@@ -318,9 +335,9 @@
 						clip-rule="evenodd"
 					/>
 				</svg>
-				<span>Network details</span>
+				<span>{$_('network.status.details')}</span>
 				<span class="font-normal text-faint"
-					>· {connectedPeerCount} {connectedPeerCount === 1 ? 'peer' : 'peers'}</span
+					>· {$_('network.status.peerCount', { values: { count: connectedPeerCount } })}</span
 				>
 				{#if peerId}
 					<code class="hidden font-mono font-normal text-faint sm:inline"

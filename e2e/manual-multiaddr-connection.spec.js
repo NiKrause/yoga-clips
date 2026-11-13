@@ -95,8 +95,15 @@ async function openReadyApp(page) {
 	});
 }
 
-/** @param {import('@playwright/test').Page} page */
+/**
+ * The network details sit behind the connection point in the header
+ * (NiKrause/yoga-clips#1, step 3): open its sheet, then the details.
+ * @param {import('@playwright/test').Page} page
+ */
 async function openNetworkDetails(page) {
+	const sheet = page.getByTestId('connection-sheet');
+	if (!(await sheet.isVisible())) await page.getByTestId('connection-point').click();
+	await expect(sheet).toBeVisible();
 	const networkDetails = page.getByTestId('network-details');
 	if ((await networkDetails.getAttribute('open')) === null) {
 		await networkDetails.getByText('Network details', { exact: true }).click();

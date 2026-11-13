@@ -31,6 +31,8 @@
 	import ThemeToggle from '$lib/ThemeToggle.svelte';
 	import LanguageSwitcher from '$lib/LanguageSwitcher.svelte';
 	import YogaClipsLogo from '$lib/YogaClipsLogo.svelte';
+	import ConnectionPoint from '$lib/ConnectionPoint.svelte';
+	import PlaylistAddress from '$lib/PlaylistAddress.svelte';
 	import ToastNotification from '$lib/ToastNotification.svelte';
 	import P2PStatusNav from '$lib/P2PStatusNav.svelte';
 	import ErrorAlert from '$lib/ErrorAlert.svelte';
@@ -435,30 +437,42 @@
 			</div>
 		</div>
 		<div class="flex flex-shrink-0 flex-wrap items-center gap-2 self-start sm:self-auto">
-			<DidBadge did={$ownDidStore ?? ''} />
+			<ConnectionPoint initialization={$initializationStore} libp2p={$libp2pStore}>
+				<section>
+					<h3 class="text-sm font-semibold text-heading">{$_('connection.identityHeading')}</h3>
+					<p class="mt-0.5 mb-2 text-xs text-faint">
+						{$ownDidStore ? $_('connection.identityHint') : $_('connection.identityAnonymous')}
+					</p>
+					<DidBadge did={$ownDidStore ?? ''} />
+				</section>
+				<PlaylistAddress />
+				<P2PStatusNav
+					initialization={$initializationStore}
+					libp2p={$libp2pStore}
+					peerId={$peerIdStore}
+				>
+					<ManualConnectForm
+						compact
+						disabled={!$initializationStore.isInitialized}
+						on:connected={handleManualConnect}
+					/>
+					<ConnectedPeers compact bind:this={connectedPeersRef} libp2p={$libp2pStore} />
+					<div class="max-w-full min-w-0 space-y-3 overflow-hidden">
+						<PeerIdCard compact peerId={$peerIdStore} />
+						<OwnMultiaddrs libp2p={$libp2pStore} />
+						<p class="text-xs break-words text-faint" data-testid="build-info">
+							{formatVersions({ appName: 'Yoga Clips' })} · {typeof __APP_BRANCH__ !== 'undefined'
+								? __APP_BRANCH__
+								: 'local'} [{typeof __BUILD_DATE__ !== 'undefined' ? __BUILD_DATE__ : 'dev'}]
+						</p>
+					</div>
+				</P2PStatusNav>
+			</ConnectionPoint>
 			<LanguageSwitcher />
 			<ThemeToggle />
 			<SocialIcons size="w-5 h-5" className="" />
 		</div>
 	</header>
-
-	<P2PStatusNav initialization={$initializationStore} libp2p={$libp2pStore} peerId={$peerIdStore}>
-		<ManualConnectForm
-			compact
-			disabled={!$initializationStore.isInitialized}
-			on:connected={handleManualConnect}
-		/>
-		<ConnectedPeers compact bind:this={connectedPeersRef} libp2p={$libp2pStore} />
-		<div class="max-w-full min-w-0 space-y-3 overflow-hidden">
-			<PeerIdCard compact peerId={$peerIdStore} />
-			<OwnMultiaddrs libp2p={$libp2pStore} />
-			<p class="text-xs break-words text-faint" data-testid="build-info">
-				{formatVersions({ appName: 'Yoga Clips' })} · {typeof __APP_BRANCH__ !== 'undefined'
-					? __APP_BRANCH__
-					: 'local'} [{typeof __BUILD_DATE__ !== 'undefined' ? __BUILD_DATE__ : 'dev'}]
-			</p>
-		</div>
-	</P2PStatusNav>
 
 	{#if !showModal && (error || $initializationStore.error)}
 		<ErrorAlert error={error || $initializationStore.error} dismissible={true} />

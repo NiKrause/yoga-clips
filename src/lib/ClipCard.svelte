@@ -11,6 +11,12 @@
 	export let doneToday = false;
 	export let doneCount = 0;
 	export let canRemove = false;
+	/**
+	 * Who added the clip, said only on a shared playlist (ClipGrid decides):
+	 * 'you', 'other', or null for nothing.
+	 * @type {'you' | 'other' | null}
+	 */
+	export let author = null;
 	/** @type {(clip: import('./clips/schema.js').Clip) => void} */
 	export let onplay = () => {};
 	/** @type {(clip: import('./clips/schema.js').Clip) => void} */
@@ -27,11 +33,6 @@
 	onMount(() => {
 		void thumbnailFor(clip).then((url) => (thumbnail = url));
 	});
-
-	/** @param {string} did */
-	function shortDid(did) {
-		return did.length > 20 ? `${did.slice(0, 10)}…${did.slice(-6)}` : did;
-	}
 
 	// Plays in the player (YouTube, Vimeo, an Instagram post or reel), or is
 	// only a link to open.
@@ -98,14 +99,12 @@
 			</ul>
 		{/if}
 		<p class="mt-auto pt-1 text-[11px] text-faint">
-			{$_('clip.addedBy')}
-			<code
-				class="rounded bg-surface-2 px-1"
-				title={clip.addedBy}
-				data-testid="clip-card-author"
-				data-did={clip.addedBy}>{shortDid(clip.addedBy)}</code
-			>
-			·
+			{#if author}
+				<span data-testid="clip-card-author" data-did={clip.addedBy}
+					>{author === 'you' ? $_('clip.addedByYou') : $_('clip.addedByOther')}</span
+				>
+				·
+			{/if}
 			<span data-testid="clip-done-count"
 				>{$_('clip.doneCount', { values: { count: doneCount } })}</span
 			>
