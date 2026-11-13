@@ -40,7 +40,11 @@
 	import PeerIdCard from '$lib/PeerIdCard.svelte';
 	import OwnMultiaddrs from '$lib/OwnMultiaddrs.svelte';
 	import ManualConnectForm from '$lib/ManualConnectForm.svelte';
-	import PlaylistPanel from '$lib/PlaylistPanel.svelte';
+	import Library from '$lib/Library.svelte';
+	import PlaylistView from '$lib/PlaylistView.svelte';
+	import BottomBar from '$lib/BottomBar.svelte';
+	import { goTo, sectionOf, viewStore } from '$lib/views.js';
+	import { lastClip, rememberLastClip } from '$lib/clips/summaries.js';
 	import SharePanel from '$lib/SharePanel.svelte';
 	import PermissionsPanel from '$lib/PermissionsPanel.svelte';
 	import AddClipForm from '$lib/AddClipForm.svelte';
@@ -90,6 +94,31 @@
 	/** @type {Clip | null} */
 	let playing = null;
 
+	// What the library knows without opening every playlist: each one's clips
+	// and minutes from when it was last open here, and the clip played last.
+	let last = typeof localStorage === 'undefined' ? null : lastClip();
+	$: continueClip =
+		last && last.playlist === $activePlaylistStore.address
+			? ($clipsStore.find((clip) => clip.id === last?.clip) ?? null)
+			: null;
+
+	/** @param {Clip} clip */
+	function rememberPlayed(clip) {
+		if (!$activePlaylistStore.address) return;
+		last = { playlist: $activePlaylistStore.address, clip: clip.id };
+		rememberLastClip(last);
+	}
+
+	/** The add-a-clip sheet, opened by the plus. @type {HTMLDialogElement | null} */
+	let addSheet = null;
+
+	$: navItems = [
+		{ id: 'library', label: $_('nav.library'), href: '#library', icon: '▦' },
+		{ id: 'practise', label: $_('nav.practise'), href: '#practise', icon: '◷' },
+		{ id: 'share', label: $_('nav.share'), href: '#share', icon: '↗' },
+		{ id: 'me', label: $_('nav.me'), href: '#me', icon: '◯' }
+	];
+
 	// Done marks, scoped to the identity that is signed in.
 	$: identityId = String($ownDidStore ?? $orbitdbStore?.identity?.id ?? '');
 	/** @type {import('$lib/clips/done.js').DoneLog} */
@@ -132,6 +161,7 @@
 		if (found) {
 			if (cinema) cinemaClip = found;
 			else playing = found;
+			rememberPlayed(found);
 			requestedClipStore.set(null);
 			if (deepLinkTimer) clearTimeout(deepLinkTimer);
 			deepLinkTimer = null;
@@ -330,6 +360,7 @@
 	/** @param {Clip} clip */
 	function play(clip) {
 		playing = clip;
+		rememberPlayed(clip);
 	}
 
 	/** @param {Clip} clip */
@@ -417,102 +448,174 @@
 	/>
 {/if}
 
-<main class="container mx-auto max-w-5xl p-4 sm:p-6" hidden={cinema}>
-	<header class="mb-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-		<div class="flex flex-1 items-center gap-3">
-			<YogaClipsLogo size={56} label="" />
-			<div>
+<main class="container mx-auto max-w-5xl px-4 pt-4 pb-28 sm:px-6" hidden={cinema}>
+	<header class="mb-5 flex items-center justify-between gap-3">
+		<div class="flex min-w-0 items-center gap-2">
+			<YogaClipsLogo size={34} label="" />
+			<div class="min-w-0">
 				<p
-					class="font-[Sora] text-[11px] font-medium tracking-[0.32em] text-infra"
+					class="font-[Sora] text-[9px] leading-none font-medium tracking-[0.32em] text-infra"
 					aria-hidden="true"
 				>
 					LE SPACE
 				</p>
 				<h1
-					class="font-[Sora] text-3xl leading-none font-bold tracking-tight text-heading lowercase sm:text-4xl"
+					class="font-[Sora] text-xl leading-tight font-bold tracking-tight text-heading lowercase"
 				>
 					{$_('app.title')}
 				</h1>
-				<p class="mt-2 text-sm text-faint">{$_('app.tagline')}</p>
 			</div>
 		</div>
-		<div class="flex flex-shrink-0 flex-wrap items-center gap-2 self-start sm:self-auto">
-			<ConnectionPoint initialization={$initializationStore} libp2p={$libp2pStore}>
-				<section>
-					<h3 class="text-sm font-semibold text-heading">{$_('connection.identityHeading')}</h3>
-					<p class="mt-0.5 mb-2 text-xs text-faint">
-						{$ownDidStore ? $_('connection.identityHint') : $_('connection.identityAnonymous')}
+		<ConnectionPoint initialization={$initializationStore} libp2p={$libp2pStore}>
+			<PlaylistAddress />
+			<P2PStatusNav
+				initialization={$initializationStore}
+				libp2p={$libp2pStore}
+				peerId={$peerIdStore}
+			>
+				<ManualConnectForm
+					compact
+					disabled={!$initializationStore.isInitialized}
+					on:connected={handleManualConnect}
+				/>
+				<ConnectedPeers compact bind:this={connectedPeersRef} libp2p={$libp2pStore} />
+				<div class="max-w-full min-w-0 space-y-3 overflow-hidden">
+					<PeerIdCard compact peerId={$peerIdStore} />
+					<OwnMultiaddrs libp2p={$libp2pStore} />
+					<p class="text-xs break-words text-faint" data-testid="build-info">
+						{formatVersions({ appName: 'Yoga Clips' })} · {typeof __APP_BRANCH__ !== 'undefined'
+							? __APP_BRANCH__
+							: 'local'} [{typeof __BUILD_DATE__ !== 'undefined' ? __BUILD_DATE__ : 'dev'}]
 					</p>
-					<DidBadge did={$ownDidStore ?? ''} />
-				</section>
-				<PlaylistAddress />
-				<P2PStatusNav
-					initialization={$initializationStore}
-					libp2p={$libp2pStore}
-					peerId={$peerIdStore}
-				>
-					<ManualConnectForm
-						compact
-						disabled={!$initializationStore.isInitialized}
-						on:connected={handleManualConnect}
-					/>
-					<ConnectedPeers compact bind:this={connectedPeersRef} libp2p={$libp2pStore} />
-					<div class="max-w-full min-w-0 space-y-3 overflow-hidden">
-						<PeerIdCard compact peerId={$peerIdStore} />
-						<OwnMultiaddrs libp2p={$libp2pStore} />
-						<p class="text-xs break-words text-faint" data-testid="build-info">
-							{formatVersions({ appName: 'Yoga Clips' })} · {typeof __APP_BRANCH__ !== 'undefined'
-								? __APP_BRANCH__
-								: 'local'} [{typeof __BUILD_DATE__ !== 'undefined' ? __BUILD_DATE__ : 'dev'}]
-						</p>
-					</div>
-				</P2PStatusNav>
-			</ConnectionPoint>
-			<LanguageSwitcher />
-			<ThemeToggle />
-			<SocialIcons size="w-5 h-5" className="" />
-		</div>
+				</div>
+			</P2PStatusNav>
+		</ConnectionPoint>
 	</header>
 
 	{#if !showModal && (error || $initializationStore.error)}
 		<ErrorAlert error={error || $initializationStore.error} dismissible={true} />
 	{/if}
 
-	{#if $initializationStore.isInitialized}
-		<div class="mt-4 flex flex-wrap items-center gap-3">
+	<!--
+		Every view stays mounted and is only hidden: a half-typed form keeps its
+		text, and the playlist keeps its place, when a person looks elsewhere.
+	-->
+	<div hidden={$viewStore !== 'library'} data-testid="view-library">
+		{#if $initializationStore.isInitialized}
+			<Library
+				notify={showToast}
+				onopened={() => goTo('playlist')}
+				{continueClip}
+				continueDoneToday={continueClip ? doneToday(doneLog, continueClip.id) : false}
+				ondone={done}
+			/>
+		{/if}
+	</div>
+
+	<div hidden={$viewStore !== 'playlist'} data-testid="view-playlist">
+		<PlaylistView onback={() => goTo('library')} onshare={() => goTo('share')} notify={showToast}>
+			{#if $initializationStore.isInitialized && $activePlaylistStore.kind !== 'none' && !cinema}
+				<ClipFilters
+					teachers={$teachersStore}
+					tags={$tagsStore}
+					bind:teacher={filterTeacher}
+					bind:tag={filterTag}
+					bind:minutes={filterMinutes}
+					count={filtered.length}
+					total={$clipsStore.length}
+				/>
+				<ClipGrid
+					clips={filtered}
+					total={$clipsStore.length}
+					{doneLog}
+					isOwner={$activePlaylistStore.kind === 'owner'}
+					{identityId}
+					onplay={play}
+					ondone={done}
+					onundo={undo}
+					onremove={remove}
+				/>
+			{/if}
+		</PlaylistView>
+	</div>
+
+	<div hidden={$viewStore !== 'practise'} data-testid="view-practise">
+		<h2 class="mb-3 text-2xl font-semibold text-heading">{$_('nav.practise')}</h2>
+		{#if $initializationStore.isInitialized}
 			<PracticeStats {stats} />
-		</div>
-		<PlaylistPanel notify={showToast} />
-		<SharePanel />
-		<PermissionsPanel />
-	{/if}
+		{/if}
+	</div>
 
-	<AddClipForm disabled={!$initializationStore.isInitialized} notify={showToast} />
+	<div hidden={$viewStore !== 'share'} data-testid="view-share">
+		<h2 class="mb-3 text-2xl font-semibold text-heading">{$_('nav.share')}</h2>
+		{#if $initializationStore.isInitialized}
+			{#if !$activePlaylistStore.address}
+				<p class="card p-6 text-center text-sm text-faint">{$_('share.none')}</p>
+			{/if}
+			<SharePanel />
+			<PermissionsPanel />
+		{/if}
+	</div>
 
-	{#if $initializationStore.isInitialized && $activePlaylistStore.kind !== 'none' && !cinema}
-		<ClipFilters
-			teachers={$teachersStore}
-			tags={$tagsStore}
-			bind:teacher={filterTeacher}
-			bind:tag={filterTag}
-			bind:minutes={filterMinutes}
-			count={filtered.length}
-			total={$clipsStore.length}
-		/>
-		<ClipGrid
-			clips={filtered}
-			total={$clipsStore.length}
-			{doneLog}
-			isOwner={$activePlaylistStore.kind === 'owner'}
-			{identityId}
-			onplay={play}
-			ondone={done}
-			onundo={undo}
-			onremove={remove}
-		/>
-		<TransferPanel notify={showToast} />
-	{/if}
+	<div hidden={$viewStore !== 'me'} data-testid="view-me" class="space-y-4">
+		<h2 class="text-2xl font-semibold text-heading">{$_('nav.me')}</h2>
+		<section class="card p-4">
+			<h3 class="text-sm font-semibold text-heading">{$_('connection.identityHeading')}</h3>
+			<p class="mt-0.5 mb-2 text-xs text-faint">
+				{$ownDidStore ? $_('connection.identityHint') : $_('connection.identityAnonymous')}
+			</p>
+			<DidBadge did={$ownDidStore ?? ''} />
+		</section>
+		<section class="card flex flex-wrap items-center justify-between gap-3 p-4">
+			<span class="text-sm font-semibold text-heading">{$_('me.appearance')}</span>
+			<span class="flex items-center gap-2"><LanguageSwitcher /><ThemeToggle /></span>
+		</section>
+		<p class="text-xs text-faint">{$_('me.connectionHint')}</p>
+		{#if $initializationStore.isInitialized && $activePlaylistStore.kind !== 'none'}
+			<TransferPanel notify={showToast} />
+		{/if}
+		<div class="flex justify-center pt-2"><SocialIcons size="w-5 h-5" className="" /></div>
+	</div>
 </main>
+
+{#if !cinema && !showModal}
+	{#if $viewStore === 'library' || $viewStore === 'playlist'}
+		<button
+			type="button"
+			class="fixed right-4 bottom-24 z-30 flex h-14 w-14 items-center justify-center rounded-full bg-accent text-3xl leading-none text-accent-ink shadow-lg sm:right-8"
+			aria-label={$_('clip.addHeading')}
+			data-testid="add-clip-open"
+			on:click={() => addSheet?.showModal()}>+</button
+		>
+	{/if}
+	<BottomBar items={navItems} current={sectionOf($viewStore)} label={$_('nav.label')} />
+{/if}
+
+<dialog
+	bind:this={addSheet}
+	class="sheet backdrop:bg-black/70"
+	aria-label={$_('clip.addHeading')}
+	data-testid="add-clip-sheet"
+	on:click={(event) => event.target === addSheet && addSheet?.close()}
+>
+	<div class="flex justify-end px-4 pt-3">
+		<button
+			type="button"
+			class="btn btn-ghost btn-sm"
+			aria-label={$_('connection.close')}
+			on:click={() => addSheet?.close()}
+			data-testid="add-clip-close">✕</button
+		>
+	</div>
+	<AddClipForm
+		disabled={!$initializationStore.isInitialized}
+		notify={showToast}
+		onadded={() => {
+			addSheet?.close();
+			goTo('playlist');
+		}}
+	/>
+</dialog>
 
 <ClipPlayer
 	clip={playing}
@@ -522,7 +625,8 @@
 	ondone={done}
 />
 
-{#if SponsorRelayFab && !cinema}
+<!-- The relay's sponsor button floats where the plus and the bottom bar are; it lives on Me. -->
+{#if SponsorRelayFab && !cinema && $viewStore === 'me'}
 	<svelte:component
 		this={SponsorRelayFab}
 		manifestUrl="./rootfs-manifest.json"

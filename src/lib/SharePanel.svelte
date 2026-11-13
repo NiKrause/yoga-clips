@@ -47,20 +47,17 @@
 </script>
 
 {#if $activePlaylistStore.address}
-	<details class="card mt-4" data-testid="share-panel">
-		<summary class="cursor-pointer px-4 py-3 text-sm">
+	<section class="card" data-testid="share-panel">
+		<div class="px-4 py-3 text-sm">
 			<span class="font-semibold text-heading" data-testid="active-playlist-kind"
 				>{$activePlaylistStore.kind === 'owner'
 					? $_('playlist.kindOwner')
 					: $_('playlist.kindGuest')}</span
 			>
 			{#if $activePlaylistStore.name}
-				<span class="text-text" data-testid="active-playlist-name">
-					· {playlistDisplayName($activePlaylistStore.name)}</span
-				>
+				<span class="text-text"> · {playlistDisplayName($activePlaylistStore.name)}</span>
 			{/if}
-			<span class="ml-2 text-xs text-faint">— {$_('share.heading')}</span>
-		</summary>
+		</div>
 		<div class="flex flex-col gap-3 border-t border-border px-4 py-3 sm:flex-row">
 			<div class="min-w-0 flex-1 space-y-3">
 				<p class="text-xs text-faint">{$_('share.hint')}</p>
@@ -92,5 +89,5 @@
 				/>
 			{/if}
 		</div>
-	</details>
+	</section>
 {/if}

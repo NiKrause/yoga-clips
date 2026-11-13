@@ -4,6 +4,7 @@ import { rememberList, listRegistryStore, openListRegistry } from '../list-regis
 import { relayHttpStatusStore } from '../relay-status.js';
 import { createClip, toExportDocument, validateClip } from './schema.js';
 import { parseAppLink } from './share.js';
+import { rememberSummary } from './summaries.js';
 export { playlistDisplayName } from './names.js';
 
 /**
@@ -50,6 +51,16 @@ export const activePlaylistStore = writable(
 );
 export const clipsStore = writable(/** @type {Clip[]} */ ([]));
 export const clipsCountStore = derived(clipsStore, ($clips) => $clips.length);
+/**
+ * The address of the playlist whose clips clipsStore holds: set when they are
+ * loaded, cleared when another playlist opens. Until the new one's clips are
+ * read, clipsStore still holds the old ones, and a summary must not take them
+ * for the new playlist's.
+ */
+const clipsAddressStore = writable('');
+derived([clipsStore, clipsAddressStore], (pair) => pair).subscribe(([clips, address]) => {
+	if (address && address === get(playlistAddressStore)) rememberSummary(address, clips);
+});
 
 /**
  * The clip a link asked for (`?clip=<id>`), until the player has shown it.
@@ -86,6 +97,7 @@ function addressOf(db) {
  */
 function setActivePlaylist(db, meta) {
 	const address = addressOf(db);
+	clipsAddressStore.set('');
 	playlistDBStore.set(db);
 	playlistAddressStore.set(address);
 	activePlaylistStore.set({ kind: meta.kind, name: meta.name ?? '', address });
@@ -230,6 +242,7 @@ async function loadSnapshot() {
 			.map((record) => validateClip(record.value))
 			.flatMap((result) => (result.ok ? [result.clip] : []));
 		clipsStore.set(sortClips(clips));
+		clipsAddressStore.set(addressOf(db));
 		const pending = entriesReceivedDuringLoad;
 		entriesReceivedDuringLoad = [];
 		for (const entry of pending) applyEntry(entry, false);

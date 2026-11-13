@@ -151,7 +151,8 @@
 		"link": "Link",
 		"copy": "Copy",
 		"copied": "Copied",
-		"qrAlt": "QR code of the link to this playlist"
+		"qrAlt": "QR code of the link to this playlist",
+		"none": "Open a playlist in the library to share it."
 	},
 	"permissions": {
 		"heading": "Who may add clips",
@@ -245,7 +246,7 @@
 		"back": "To the playlist"
 	},
 	"yogaBreak": {
-		"what": "a mod for Claude Code that suggests a clip from this playlist while a long tool call runs. To set it up:",
+		"what": "a mod for Claude Code that suggests a clip from this playlist while Claude works on something long. To set it up:",
 		"install": "Install the mod, in a terminal:",
 		"export": "Export clips.json here and move the file to ~/.yoga/clips.json.",
 		"playlist": "In Claude Code, name this playlist, so that a suggested clip opens here in the cinema page:"
@@ -390,5 +391,23 @@
 			"webtransport": "WebTransport",
 			"tcp": "TCP"
 		}
+	},
+	"nav": {
+		"label": "Sections",
+		"library": "Library",
+		"practise": "Practise",
+		"share": "Share",
+		"me": "Me"
+	},
+	"library": {
+		"continue": "Continue",
+		"yours": "Your playlists",
+		"shared": "Shared with you",
+		"summary": "{clips, plural, one {# clip} other {# clips}} · {minutes} min",
+		"from": "from “{name}”"
+	},
+	"me": {
+		"appearance": "Language and look",
+		"connectionHint": "The dot at the top shows the connection; behind it are the network, the playlist’s address and the technical details."
 	}
 }

@@ -8,6 +8,35 @@ import { passConsent } from './consent.mjs';
 const timeout = 90_000;
 
 /**
+ * Show a view (NiKrause/yoga-clips#1, step 4): a section of the bottom bar,
+ * or the open playlist's page, reached as a person does, through the library.
+ *
+ * @param {import('@playwright/test').Page} page
+ * @param {'library' | 'playlist' | 'practise' | 'share' | 'me'} view
+ */
+export async function showView(page, view) {
+	if (await page.getByTestId(`view-${view}`).isVisible()) return;
+	if (view === 'playlist') {
+		await showView(page, 'library');
+		await page.locator('[data-testid="playlist-switcher-open"][data-active="true"]').click();
+	} else {
+		await page.getByTestId(`bottom-bar-${view}`).click();
+	}
+	await expect(page.getByTestId(`view-${view}`)).toBeVisible({ timeout });
+}
+
+/**
+ * The add-a-clip sheet, opened by the plus where it is closed.
+ * @param {import('@playwright/test').Page} page
+ */
+export async function openAddClip(page) {
+	if (await page.getByTestId('add-clip-sheet').isVisible()) return;
+	if (!(await page.getByTestId('add-clip-open').isVisible())) await showView(page, 'library');
+	await page.getByTestId('add-clip-open').click();
+	await expect(page.getByTestId('add-clip-sheet')).toBeVisible();
+}
+
+/**
  * @param {import('@playwright/test').Page} page
  * @param {string} [url]
  */
@@ -47,6 +76,7 @@ export function clipCard(page, title) {
  * @returns {Promise<string>} the clip's id
  */
 export async function addClip(page, clip) {
+	await openAddClip(page);
 	await page.getByTestId('clip-url').fill(clip.url);
 	// A lookup may fill these from the network; what the test types wins.
 	await page.getByTestId('clip-title').fill(clip.title);

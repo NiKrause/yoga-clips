@@ -13,15 +13,17 @@
 </script>
 
 <nav class="bottom-bar" aria-label={label} data-testid="bottom-bar">
-	{#each items as item (item.id)}
-		<a
-			class="bottom-bar-item"
-			href={item.href}
-			aria-current={item.id === current ? 'page' : undefined}
-			data-testid="bottom-bar-{item.id}"
-		>
-			<span class="bottom-bar-icon" aria-hidden="true">{item.icon ?? ''}</span>
-			<span>{item.label}</span>
-		</a>
-	{/each}
+	<div class="mx-auto flex w-full max-w-lg">
+		{#each items as item (item.id)}
+			<a
+				class="bottom-bar-item"
+				href={item.href}
+				aria-current={item.id === current ? 'page' : undefined}
+				data-testid="bottom-bar-{item.id}"
+			>
+				<span class="bottom-bar-icon" aria-hidden="true">{item.icon ?? ''}</span>
+				<span>{item.label}</span>
+			</a>
+		{/each}
+	</div>
 </nav>
