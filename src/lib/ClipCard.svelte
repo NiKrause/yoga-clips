@@ -3,7 +3,7 @@
 	// screen (the thumbnail, lazily) and nothing plays before a click.
 	import { onMount } from 'svelte';
 	import { _ } from '$lib/i18n/index.js';
-	import { formatDuration } from './clips/schema.js';
+	import { formatDuration, parseClipUrl } from './clips/schema.js';
 	import { thumbnailFor } from './clips/thumbnails.js';
 
 	/** @type {import('./clips/schema.js').Clip} */
@@ -33,7 +33,9 @@
 		return did.length > 20 ? `${did.slice(0, 10)}…${did.slice(-6)}` : did;
 	}
 
-	$: embeddable = clip.source === 'youtube' || clip.source === 'vimeo';
+	// Plays in the player (YouTube, Vimeo, an Instagram post or reel), or is
+	// only a link to open.
+	$: embeddable = Boolean(parseClipUrl(clip.url)?.embedUrl);
 </script>
 
 <article

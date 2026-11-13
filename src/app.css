@@ -124,8 +124,15 @@ h3 {
 	color: var(--heading);
 }
 
-a {
-	color: var(--cyan);
+/*
+	In the base layer, so that a utility on a link wins. Outside any layer this
+	rule beat every `text-*` class: the label of a filled button that is a link
+	("Open on Instagram") came out in the link colour instead of white.
+*/
+@layer base {
+	a {
+		color: var(--cyan);
+	}
 }
 
 /* Form controls follow the theme (override @tailwindcss/forms light defaults) */

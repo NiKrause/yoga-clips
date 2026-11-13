@@ -99,9 +99,12 @@ function hostOf(hostname) {
  * Which service a link points at, and how to show it.
  *
  * YouTube and Vimeo can be embedded (youtube-nocookie.com, player.vimeo.com),
- * and YouTube's thumbnail follows from the id alone. Instagram is only a card
- * with an "open" button: there is no embed without Instagram's script, and
- * that script is exactly what this app does not load.
+ * and YouTube's thumbnail follows from the id alone. An Instagram post or
+ * reel has an `/embed/` page of its own, the one Instagram's embed code
+ * frames; the player frames it directly, so Instagram's script never runs in
+ * this app's page. Whether the video then plays in the frame is Instagram's
+ * decision (it did for a public reel in Chrome and WebKit, 2026-11-13), and
+ * a private account shows nothing — the player keeps its "open" button.
  *
  * @param {string} input
  * @returns {ParsedClipUrl | null} null when the input is not a URL at all
@@ -147,7 +150,11 @@ export function parseClipUrl(input) {
 			source: 'instagram',
 			url: code ? `https://www.instagram.com/${path[0]}/${code}/` : url.href,
 			videoId: code,
-			embedUrl: null,
+			// `/reels/<code>` is how the app shares a reel; its embed page
+			// lives under `/reel/`. Everything else with a code is a post.
+			embedUrl: code
+				? `https://www.instagram.com/${path[0].startsWith('reel') ? 'reel' : 'p'}/${code}/embed/`
+				: null,
 			thumbnailUrl: null
 		};
 	}

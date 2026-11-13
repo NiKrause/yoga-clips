@@ -79,7 +79,7 @@
 			"playlist": "A playlist you create decides who may write to it - you, and any friend whose identity you let in. It does not decide who may read it: anyone who has its address can.",
 			"readingIsOpen": "Nothing here is encrypted. A playlist holds links, titles, teachers and tags - put nothing in it you would not put on a shared pinboard.",
 			"oembed": "When you paste a YouTube or Vimeo link, this browser asks youtube.com or vimeo.com for the title, the thumbnail and, at Vimeo, the length. YouTube tells the length only through its player, so for a YouTube link the player is loaded from youtube-nocookie.com as well, out of sight and without playing; the player fetches its own parts from other Google servers. Apart from that, those services learn nothing from this app before you press play.",
-			"embeds": "Playing a clip loads it from youtube-nocookie.com or player.vimeo.com, with everything that implies about those services seeing you watch. Apart from the lookup when you paste a link, nothing loads before you click. Instagram is never embedded; its clips open on instagram.com.",
+			"embeds": "Playing a clip loads it from youtube-nocookie.com, player.vimeo.com or instagram.com, with everything that implies about those services seeing you watch. Apart from the lookup when you paste a link, nothing loads before you click. An Instagram clip is shown through Instagram's own embed page in a frame; none of its scripts run in this app's page.",
 			"storage": "Your playlists and clips are kept in this browser (IndexedDB) so they are there offline and after a reload. Which clips you marked done, and when, stays on this device only.",
 			"identityPasskey": "Your passkey identifies you to the other devices. Nobody else can write as you.",
 			"identityAnonymous": "You are using a random identity that exists only in this browser. Clear its storage and it is gone - along with the right to write to your playlists.",
@@ -239,7 +239,7 @@
 	},
 	"player": {
 		"close": "Close",
-		"instagramHint": "Instagram clips are not embedded. The button opens the clip on instagram.com.",
+		"instagramHint": "Instagram decides whether the video plays here, and a private account shows nothing. The button opens the clip on instagram.com.",
 		"otherHint": "This clip is not embedded. The button opens it in a new tab.",
 		"notFound": "The clip the link points to is not in this playlist.",
 		"openLink": "Open link",

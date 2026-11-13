@@ -1,8 +1,14 @@
 <script>
 	// The player. YouTube goes through youtube-nocookie.com, Vimeo through
-	// player.vimeo.com with do-not-track; both only once this dialog is open.
-	// Instagram and everything else get a card with the link — no third-party
-	// script is ever loaded.
+	// player.vimeo.com with do-not-track, an Instagram post or reel through its
+	// own /embed/ page; each only once this dialog is open. Everything else
+	// gets a card with the link. No third party's script runs in this page:
+	// each service's code stays inside its own frame.
+	//
+	// The Instagram frame is sandboxed to what it needs to play: its scripts
+	// and its own origin. Without the origin WebKit does not load the video
+	// (measured 2026-11-13); popups and navigating this page stay off, so the
+	// links inside the frame do nothing and the button below is the way out.
 	import { _ } from '$lib/i18n/index.js';
 	import { formatDuration, parseClipUrl } from './clips/schema.js';
 	import { buildAppLink } from './clips/share.js';
@@ -72,7 +78,36 @@
 			>
 		</div>
 
-		{#if embedUrl}
+		{#if embedUrl && clip.source === 'instagram'}
+			<div class="flex justify-center bg-black" data-testid="player-instagram">
+				<iframe
+					src={embedUrl}
+					title={clip.title}
+					class="h-[min(70vh,46rem)] w-full max-w-[26rem] bg-white"
+					sandbox="allow-scripts allow-same-origin"
+					allow="autoplay; fullscreen; picture-in-picture; encrypted-media"
+					allowfullscreen
+					referrerpolicy="strict-origin-when-cross-origin"
+					data-testid="player-iframe"
+				></iframe>
+			</div>
+			<div
+				class="flex flex-wrap items-center justify-between gap-3 border-t border-border px-4 py-3"
+			>
+				<p class="min-w-0 flex-1 basis-64 text-xs text-faint" data-testid="player-instagram-hint">
+					{$_('player.instagramHint')}
+				</p>
+				<a
+					href={clip.url}
+					target="_blank"
+					rel="noopener noreferrer"
+					class="shrink-0 rounded-md bg-coral-700 px-5 py-2 font-medium text-white hover:bg-coral-800"
+					data-testid="player-open-external"
+				>
+					{$_('clip.openOn', { values: { source: $_(`source.${clip.source}`) } })}
+				</a>
+			</div>
+		{:else if embedUrl}
 			<div class="aspect-video w-full bg-black">
 				<iframe
 					src={embedUrl}
@@ -89,9 +124,7 @@
 				class="flex flex-col items-center gap-3 px-4 py-10 text-center"
 				data-testid="player-external"
 			>
-				<p class="text-sm text-faint">
-					{clip.source === 'instagram' ? $_('player.instagramHint') : $_('player.otherHint')}
-				</p>
+				<p class="text-sm text-faint">{$_('player.otherHint')}</p>
 				<a
 					href={clip.url}
 					target="_blank"

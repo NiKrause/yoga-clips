@@ -26,8 +26,11 @@ a clip that fits the wait and opens it — in a later version through this app's
   other link. Teachers autocomplete from the playlist.
 - **Find one.** Grid of cards, filtered by teacher, tag, and "I have N minutes".
 - **Play it.** YouTube and Vimeo play inline, from `youtube-nocookie.com` and
-  `player.vimeo.com`; the player you watch in loads only after the click. Instagram is a card with an
-  _Open_ button — no Instagram script is ever loaded.
+  `player.vimeo.com`; the player you watch in loads only after the click. An
+  Instagram post or reel is shown the same way, through its own `/embed/` page
+  in a sandboxed frame — no Instagram script is ever loaded into the app's
+  page. Instagram decides whether the video plays in that frame and private
+  accounts show nothing, so the _Open on Instagram_ button stays beside it.
 - **Deep link.** `?clip=<id>` opens a clip in the player; `?db=<address>` opens
   a playlist. Both may be combined.
 - **clips.json.** _Export_ writes every clip of the open playlist as
@@ -119,7 +122,9 @@ browser ──libp2p (WebSocket/WebRTC)──▶ orbitdb-relay ◀── another
   (`google.com`, `gstatic.com`, `i.ytimg.com`, `googleapis.com` when measured
   on 2026-11-13). Cards load thumbnails from `i.ytimg.com` /
   `vimeocdn.com` (Vimeo's, once per clip, cached in localStorage). Playing
-  loads the embed. The consent screen says all of this.
+  loads the embed: `youtube-nocookie.com`, `player.vimeo.com`, or for an
+  Instagram clip `www.instagram.com` (which fetches from `cdninstagram.com`
+  and `graph.instagram.com`) — none of them before that click. The consent screen says all of this.
 
 ### From simple-todo
 

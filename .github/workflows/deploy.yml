@@ -61,6 +61,7 @@ jobs:
           e2e/manual-multiaddr-connection.spec.js
           e2e/consent-identity-choice.spec.js
           e2e/passkey-steps.spec.js
+          e2e/instagram-embed.spec.js
           --project=chromium
 
       - name: Summarize E2E

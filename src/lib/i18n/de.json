@@ -79,7 +79,7 @@
 			"playlist": "Eine Playlist, die du anlegst, bestimmt, wer hineinschreiben darf - du und jede Freundin, deren Identität du hineinlässt. Sie bestimmt nicht, wer sie lesen darf: Wer die Adresse hat, kann das.",
 			"readingIsOpen": "Hier ist nichts verschlüsselt. Eine Playlist enthält Links, Titel, Lehrer und Tags - schreib nichts hinein, was du nicht auch an eine gemeinsame Pinnwand heften würdest.",
 			"oembed": "Wenn du einen YouTube- oder Vimeo-Link einfügst, fragt dieser Browser bei youtube.com oder vimeo.com nach Titel, Vorschaubild und, bei Vimeo, der Länge. YouTube nennt die Länge nur über seinen Player. Deshalb wird bei einem YouTube-Link zusätzlich der Player von youtube-nocookie.com geladen, unsichtbar und ohne abzuspielen; der Player holt seine eigenen Teile von weiteren Google-Servern. Darüber hinaus erfahren diese Dienste von dieser App nichts, bevor du auf Abspielen drückst.",
-			"embeds": "Beim Abspielen lädt der Clip von youtube-nocookie.com oder player.vimeo.com, mit allem, was das darüber heißt, dass diese Dienste dich zuschauen sehen. Außer der Abfrage beim Einfügen eines Links lädt vor dem Klick nichts. Instagram wird nie eingebettet; diese Clips öffnen sich auf instagram.com.",
+			"embeds": "Beim Abspielen lädt der Clip von youtube-nocookie.com, player.vimeo.com oder instagram.com, mit allem, was das darüber heißt, dass diese Dienste dich zuschauen sehen. Außer der Abfrage beim Einfügen eines Links lädt vor dem Klick nichts. Ein Instagram-Clip wird über Instagrams eigene Einbettungsseite in einem Rahmen gezeigt; keines ihrer Skripte läuft in der Seite dieser App.",
 			"storage": "Deine Playlists und Clips liegen in diesem Browser (IndexedDB), damit sie offline und nach dem Neuladen da sind. Welche Clips du wann absolviert hast, bleibt nur auf diesem Gerät.",
 			"identityPasskey": "Dein Passkey weist dich gegenüber den anderen Geräten aus. Niemand sonst kann in deinem Namen schreiben.",
 			"identityAnonymous": "Du verwendest eine zufällige Identität, die es nur in diesem Browser gibt. Löschst du seinen Speicher, ist sie weg - und mit ihr das Schreibrecht an deinen Playlists.",
@@ -239,7 +239,7 @@
 	},
 	"player": {
 		"close": "Schließen",
-		"instagramHint": "Instagram-Clips werden nicht eingebettet. Der Knopf öffnet den Clip auf instagram.com.",
+		"instagramHint": "Instagram entscheidet, ob das Video hier läuft, und ein privates Konto zeigt nichts. Der Knopf öffnet den Clip auf instagram.com.",
 		"otherHint": "Dieser Clip wird nicht eingebettet. Der Knopf öffnet ihn in einem neuen Tab.",
 		"notFound": "Der Clip, auf den der Link zeigt, ist nicht in dieser Playlist.",
 		"openLink": "Link öffnen",

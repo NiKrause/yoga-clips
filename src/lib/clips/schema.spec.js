@@ -47,8 +47,42 @@ describe('parseClipUrl', () => {
 
 		const reel = parseClipUrl('https://www.instagram.com/reel/C0dEexample/?igsh=abc');
 		expect(reel?.source).toBe('instagram');
-		expect(reel?.embedUrl).toBeNull();
 		expect(reel?.url).toBe('https://www.instagram.com/reel/C0dEexample/');
+	});
+
+	it('builds Instagram’s embed address from post and reel links', () => {
+		const embed = (/** @type {string} */ link) => parseClipUrl(link)?.embedUrl;
+		expect(embed('https://www.instagram.com/reel/C0dEexample/?igsh=abc')).toBe(
+			'https://www.instagram.com/reel/C0dEexample/embed/'
+		);
+		expect(embed('https://instagram.com/reels/C0dEexample')).toBe(
+			'https://www.instagram.com/reel/C0dEexample/embed/'
+		);
+		expect(embed('https://www.instagram.com/p/C0dE_ex-mple/')).toBe(
+			'https://www.instagram.com/p/C0dE_ex-mple/embed/'
+		);
+		expect(embed('https://instagr.am/p/C0dEexample/?utm_source=ig_web')).toBe(
+			'https://www.instagram.com/p/C0dEexample/embed/'
+		);
+		expect(embed('https://www.instagram.com/tv/C0dEexample/')).toBe(
+			'https://www.instagram.com/p/C0dEexample/embed/'
+		);
+	});
+
+	it('has no embed address for an Instagram link that is not a post', () => {
+		// A profile, a story, a path that only looks like a post: nothing of
+		// the link reaches the frame's address.
+		for (const link of [
+			'https://www.instagram.com/example.teacher/',
+			'https://www.instagram.com/stories/example.teacher/123/',
+			'https://www.instagram.com/p/',
+			'https://www.instagram.com/p/..%2F..%2Faccounts/',
+			'https://www.instagram.com/reel/a"b/'
+		]) {
+			const parsed = parseClipUrl(link);
+			expect(parsed?.source, link).toBe('instagram');
+			expect(parsed?.embedUrl, link).toBeNull();
+		}
 	});
 
 	it('calls everything else "other" and refuses what is not a web link', () => {
