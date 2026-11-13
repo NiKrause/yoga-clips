@@ -1,0 +1,39 @@
+{
+	"lang": "en",
+	"parts": [
+		{ "card": "intro" },
+		{
+			"card": "scene",
+			"eyebrow": "While Claude works",
+			"title": "A long task, and a short break",
+			"sub": "The yoga-break mod for Claude Code suggests a clip that fits the wait."
+		},
+		{
+			"card": "scene",
+			"eyebrow": "Placeholder",
+			"title": "Here goes the recording from Claude",
+			"sub": "A long task, the countdown, the band with a suggestion, Open.",
+			"say": null,
+			"hold": 6000,
+			"placeholder": "claude-desktop.en"
+		},
+		{ "scene": "cinema.en" },
+		{
+			"card": "scene",
+			"eyebrow": "Your playlist",
+			"title": "Your own clips, shared by link",
+			"sub": "No account, no server: the playlist lives on your devices."
+		},
+		{ "scene": "playlist.en" },
+		{ "scene": "share.en" },
+		{ "scene": "share-friend.en" },
+		{
+			"card": "scene",
+			"eyebrow": "Connect",
+			"title": "Your playlist in Claude",
+			"sub": "Export clips.json, and give the mod the playlist’s link."
+		},
+		{ "scene": "export.en" },
+		{ "card": "outro" }
+	]
+}

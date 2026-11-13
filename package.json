@@ -16,11 +16,14 @@
 		"test:unit": "vitest --run",
 		"test": "pnpm run test:unit && pnpm run test:e2e",
 		"test:e2e": "playwright test",
-		"check:preview-origin": "node e2e/check-preview-origin.mjs"
+		"check:preview-origin": "node e2e/check-preview-origin.mjs",
+		"video": "playwright test -c playwright.video.config.js",
+		"video:compose": "node e2e-video/compose.mjs"
 	},
 	"devDependencies": {
 		"@eslint/compat": "^1.2.5",
 		"@eslint/js": "^9.18.0",
+		"@le-space/video-kit": "github:Le-Space/belege#9d97df59bf7004bbdf810cfb7592862282c2fbd8&path:/packages/video-kit",
 		"@playwright/test": "1.61.1",
 		"@sveltejs/adapter-static": "^3.0.8",
 		"@sveltejs/kit": "^2.22.0",
@@ -47,6 +50,9 @@
 		"vitest-browser-svelte": "^0.1.0"
 	},
 	"pnpm": {
+		"patchedDependencies": {
+			"playwright-core@1.61.1": "patches/playwright-core@1.61.1.patch"
+		},
 		"overrides": {
 			"@le-space/orbitdb-identity-provider-webauthn-did": "0.5.4",
 			"orbitdb-relay>@orbitdb/core": "4.0.0",

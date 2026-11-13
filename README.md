@@ -183,6 +183,14 @@ the deep link plays) runs against a local relay:
 pnpm exec playwright test e2e/clips-sharing.spec.js --project=chromium
 ```
 
+The narrated demo film (English and German) is recorded by Playwright from
+sample data with Belege's video kit, `@le-space/video-kit`; see
+[e2e-video/README.md](e2e-video/README.md).
+
+```bash
+DEMO_VOICE=say pnpm video && pnpm video:compose e2e-video/out --film e2e-video/films/intro-en.json
+```
+
 ## Deployment
 
 `.github/workflows/deploy.yml` runs the unit and E2E tests and publishes the

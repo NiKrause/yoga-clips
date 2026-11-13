@@ -6,6 +6,10 @@ p2p-todo-demo
 relay/
 e2e/relay-info.json
 e2e/relay.log
+# The demo film: recordings, spoken lines (they cost), composed films
+e2e-video/results/
+e2e-video/voice/
+e2e-video/out/
 
 # Output
 .output

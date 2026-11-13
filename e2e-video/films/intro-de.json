@@ -1,0 +1,39 @@
+{
+	"lang": "de",
+	"parts": [
+		{ "card": "intro" },
+		{
+			"card": "scene",
+			"eyebrow": "Während Claude arbeitet",
+			"title": "Eine lange Aufgabe, eine kurze Pause",
+			"sub": "Der Mod yoga-break für Claude Code schlägt einen Clip vor, der in die Wartezeit passt."
+		},
+		{
+			"card": "scene",
+			"eyebrow": "Platzhalter",
+			"title": "Hier kommt die Aufnahme aus Claude",
+			"sub": "Eine lange Aufgabe, der Countdown, das Band mit dem Vorschlag, Öffnen.",
+			"say": null,
+			"hold": 6000,
+			"placeholder": "claude-desktop.de"
+		},
+		{ "scene": "cinema.de" },
+		{
+			"card": "scene",
+			"eyebrow": "Deine Playlist",
+			"title": "Deine eigenen Clips, geteilt per Link",
+			"sub": "Kein Konto, kein Server: Die Playlist lebt auf deinen Geräten."
+		},
+		{ "scene": "playlist.de" },
+		{ "scene": "share.de" },
+		{ "scene": "share-friend.de" },
+		{
+			"card": "scene",
+			"eyebrow": "Verbinden",
+			"title": "Deine Playlist in Claude",
+			"sub": "clips.json exportieren und dem Mod den Link der Playlist geben."
+		},
+		{ "scene": "export.de" },
+		{ "card": "outro" }
+	]
+}
