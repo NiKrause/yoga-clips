@@ -29,6 +29,16 @@
 	export let ondone = () => {};
 	/** Back to the playlist. @type {() => void} */
 	export let onleave = () => {};
+	/**
+	 * Start at once: the cinema was opened by a press on "Fullscreen", which is
+	 * the gesture fullscreen and sound need. A clip link waits for its own press.
+	 */
+	export let autostart = false;
+	let autostarted = false;
+	$: if (autostart && !autostarted && clip && playable) {
+		autostarted = true;
+		start();
+	}
 
 	/** @type {HTMLDivElement | null} */
 	let stage = null;

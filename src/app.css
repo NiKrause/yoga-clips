@@ -49,6 +49,11 @@
 	--data: #8a5a00;
 	--infra: #5b3fd6; /* violet */
 	--danger: #b42318;
+	/* Playlist tiles and clip placeholders (the relaunch mockups) */
+	--tile-1: #ffe2a8;
+	--tile-2: #d9e6f5;
+	--tile-3: #e7dcf9;
+	--tile-4: #d6eedd;
 }
 
 /* At night */
@@ -73,6 +78,10 @@
 	--data: #ffc24b;
 	--infra: #a893ff;
 	--danger: #ff8a80;
+	--tile-1: #3a3414;
+	--tile-2: #162a40;
+	--tile-3: #2a2147;
+	--tile-4: #143226;
 }
 
 @theme inline {
@@ -90,6 +99,10 @@
 	--color-infra: var(--infra);
 	--color-danger: var(--danger);
 	--color-accent: var(--accent);
+	--color-tile-1: var(--tile-1);
+	--color-tile-2: var(--tile-2);
+	--color-tile-3: var(--tile-3);
+	--color-tile-4: var(--tile-4);
 	--color-accent-ink: var(--accent-ink);
 	--color-accent-text: var(--accent-text);
 
@@ -242,6 +255,16 @@ textarea::placeholder {
 		background: var(--surface-2);
 	}
 
+	/* A small heading in capitals above a group: "Continue", "Your playlists". */
+	.section-label {
+		margin: 0 0 0.5rem;
+		font-size: 0.75rem;
+		font-weight: 500;
+		letter-spacing: 0.08em;
+		text-transform: uppercase;
+		color: var(--faint);
+	}
+
 	.card {
 		background: var(--surface);
 		border: 1px solid var(--border);
@@ -321,7 +344,7 @@ textarea::placeholder {
 		align-items: center;
 		gap: 0.25rem;
 		min-height: 2.75rem;
-		font-size: 0.6875rem;
+		font-size: 0.75rem;
 		color: var(--faint);
 		text-decoration: none;
 	}
@@ -333,9 +356,9 @@ textarea::placeholder {
 		display: flex;
 		align-items: center;
 		justify-content: center;
-		width: 2rem;
-		height: 1.5rem;
-		border-radius: 8px;
+		width: 3rem;
+		height: 1.875rem;
+		border-radius: 999px;
 	}
 	.bottom-bar-item[aria-current='page'] .bottom-bar-icon {
 		background: var(--accent);

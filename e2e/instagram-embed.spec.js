@@ -52,11 +52,11 @@ test('an Instagram clip asks nothing of Instagram before the click, and its embe
 	await expect(open).toHaveAttribute('href', REEL);
 	await expect(open).toHaveAttribute('target', '_blank');
 
-	// Its label has the colour meant for text on the accent fill, in both
-	// themes — it once came out in the link colour, which is hard to read there.
+	// Its label is readable on the ghost button beside "Done", in both themes:
+	// the heading colour, not the link colour it once came out in.
 	for (const dark of [false, true]) {
 		await page.evaluate((on) => document.documentElement.classList.toggle('dark', on), dark);
-		const { label, onAccent, link } = await open.evaluate((element) => {
+		const { label, heading, link } = await open.evaluate((element) => {
 			const probe = (/** @type {string} */ value) => {
 				const span = document.createElement('span');
 				span.style.color = value;
@@ -67,11 +67,11 @@ test('an Instagram clip asks nothing of Instagram before the click, and its embe
 			};
 			return {
 				label: getComputedStyle(element).color,
-				onAccent: probe('var(--accent-ink)'),
+				heading: probe('var(--heading)'),
 				link: probe('var(--cyan)')
 			};
 		});
-		expect(label, dark ? 'dark' : 'light').toBe(onAccent);
+		expect(label, dark ? 'dark' : 'light').toBe(heading);
 		expect(label, dark ? 'dark' : 'light').not.toBe(link);
 	}
 

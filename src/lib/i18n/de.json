@@ -151,7 +151,8 @@
 		"link": "Link",
 		"copy": "Kopieren",
 		"copied": "Kopiert",
-		"qrAlt": "QR-Code des Links zu dieser Playlist"
+		"qrAlt": "QR-Code des Links zu dieser Playlist",
+		"none": "Öffne in der Bibliothek eine Playlist, um sie zu teilen."
 	},
 	"permissions": {
 		"heading": "Wer Clips hinzufügen darf",
@@ -206,7 +207,9 @@
 		"markedDone": "Als absolviert markiert: {minutes} Min.",
 		"noThumbnail": "Keine Vorschau",
 		"addedByYou": "von dir hinzugefügt",
-		"addedByOther": "von jemand anderem hinzugefügt"
+		"addedByOther": "von jemand anderem hinzugefügt",
+		"playing": "läuft gerade",
+		"listHeading": "In dieser Playlist · {count, plural, one {# Clip} other {# Clips}}"
 	},
 	"filter": {
 		"heading": "Clip finden",
@@ -214,12 +217,13 @@
 		"teacherAll": "alle Lehrer:innen",
 		"tag": "Tag",
 		"tagAll": "alle Tags",
-		"minutes": "Ich habe {minutes} Minuten",
-		"minutesAny": "egal wie lang",
 		"showing": "{count} von {total} Clips",
 		"reset": "Filter zurücksetzen",
 		"empty": "Noch keine Clips. Füge oben einen Link ein, um den ersten hinzuzufügen.",
-		"emptyFiltered": "Kein Clip passt. Lockere die Filter ein wenig."
+		"emptyFiltered": "Kein Clip passt. Lockere die Filter ein wenig.",
+		"all": "Alle",
+		"upTo": "bis {minutes} Min.",
+		"more": "Filter"
 	},
 	"transfer": {
 		"heading": "Vorschläge in Claude",
@@ -245,7 +249,7 @@
 		"back": "Zur Playlist"
 	},
 	"yogaBreak": {
-		"what": "ein Mod für Claude Code, der während eines langen Tool-Aufrufs einen Clip aus dieser Playlist vorschlägt. So richtest du ihn ein:",
+		"what": "ein Mod für Claude Code, der einen Clip aus dieser Playlist vorschlägt, während Claude an etwas Langem arbeitet. So richtest du ihn ein:",
 		"install": "Den Mod installieren, im Terminal:",
 		"export": "Hier clips.json exportieren und die Datei nach ~/.yoga/clips.json legen.",
 		"playlist": "In Claude Code diese Playlist nennen, damit ein vorgeschlagener Clip hier in der Kino-Seite aufgeht:"
@@ -390,5 +394,23 @@
 			"webtransport": "WebTransport",
 			"tcp": "TCP"
 		}
+	},
+	"nav": {
+		"label": "Bereiche",
+		"library": "Bibliothek",
+		"practise": "Üben",
+		"share": "Teilen",
+		"me": "Ich"
+	},
+	"library": {
+		"continue": "Weiter üben",
+		"yours": "Deine Playlists",
+		"shared": "Mit dir geteilt",
+		"summary": "{clips, plural, one {# Clip} other {# Clips}} · {minutes} Min.",
+		"from": "aus „{name}“"
+	},
+	"me": {
+		"appearance": "Sprache und Aussehen",
+		"connectionHint": "Der Punkt oben zeigt die Verbindung; dahinter liegen das Netz, die Adresse der Playlist und die technischen Einzelheiten."
 	}
 }

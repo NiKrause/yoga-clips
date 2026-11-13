@@ -23,6 +23,8 @@
 	/** The two lookups, replaceable so a test needs no YouTube and no Vimeo. */
 	export let lookupOEmbed = fetchOEmbed;
 	export let lookupYouTubeDuration = readYouTubeDuration;
+	/** After a clip was added: the sheet closes and the playlist shows it. */
+	export let onadded = () => {};
 
 	let url = '';
 	let title = '';
@@ -168,6 +170,7 @@
 				tags = '';
 				thumbnailUrl = null;
 				notify($_('clip.added'), 'success');
+				onadded();
 				return;
 			}
 			if (result.kind === 'denied') errorMessage = $_('clip.denied');
@@ -187,7 +190,7 @@
 	$: formDisabled = disabled || $activePlaylistStore.kind === 'none';
 </script>
 
-<section class="card mt-4 p-4" data-testid="add-clip">
+<section class="p-4" data-testid="add-clip">
 	<h2 class="text-lg font-semibold text-heading">{$_('clip.addHeading')}</h2>
 	{#if $activePlaylistStore.kind === 'none' && !disabled}
 		<p class="mt-1 text-xs text-faint">{$_('clip.noPlaylist')}</p>
