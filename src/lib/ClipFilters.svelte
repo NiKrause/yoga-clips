@@ -24,10 +24,7 @@
 	$: active = teacher || tag || minutes > 0;
 </script>
 
-<section
-	class="mt-4 rounded-lg border border-border bg-surface p-4 shadow-sm"
-	data-testid="clip-filters"
->
+<section class="card mt-4 p-4" data-testid="clip-filters">
 	<div class="flex flex-wrap items-end gap-3">
 		<h2 class="mr-auto text-lg font-semibold text-heading">{$_('filter.heading')}</h2>
 		<label class="block text-xs text-faint">
@@ -69,7 +66,7 @@
 				step="1"
 				bind:value={minutes}
 				data-testid="filter-minutes"
-				class="mt-2 block w-full accent-coral-700"
+				class="mt-2 block w-full accent-[var(--accent)]"
 			/>
 		</label>
 	</div>

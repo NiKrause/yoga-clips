@@ -86,7 +86,7 @@
 				>
 					{#if copied}
 						<svg
-							class="h-4 w-4 text-identity-600"
+							class="h-4 w-4 text-identity"
 							fill="none"
 							stroke="currentColor"
 							viewBox="0 0 24 24"
@@ -115,7 +115,7 @@
 			<p class="mt-2 text-sm text-text">{description}</p>
 		{/if}
 		{#if copied}
-			<p class="mt-1 text-sm font-medium text-identity-600">Copied to clipboard!</p>
+			<p class="mt-1 text-sm font-medium text-identity">Copied to clipboard!</p>
 		{/if}
 	{:else}
 		<p class="text-faint">{loadingMessage}</p>

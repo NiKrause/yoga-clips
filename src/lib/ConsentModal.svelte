@@ -273,7 +273,7 @@
 				disabled={!accepted || !canProceed}
 				on:click={proceed}
 				data-testid="consent-proceed"
-				class="rounded-md bg-coral-700 px-6 py-3 font-medium text-white transition-colors hover:bg-coral-800 disabled:cursor-not-allowed disabled:opacity-50"
+				class="btn btn-primary px-6"
 			>
 				{proceedLabel}
 			</button>

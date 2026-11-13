@@ -39,7 +39,7 @@
 </script>
 
 <article
-	class="flex flex-col overflow-hidden rounded-lg border border-border bg-surface shadow-sm"
+	class="card flex flex-col overflow-hidden"
 	data-testid="clip-card"
 	data-clip-id={clip.id}
 	data-source={clip.source}
@@ -77,7 +77,7 @@
 		<span
 			class="absolute inset-0 flex items-center justify-center bg-code/0 text-white opacity-0 transition group-hover:bg-code/40 group-hover:opacity-100 group-focus-visible:opacity-100"
 		>
-			<span class="rounded-full bg-coral-700 px-4 py-2 text-sm font-medium"
+			<span class="rounded-full bg-accent px-4 py-2 text-sm font-semibold text-accent-ink"
 				>{embeddable
 					? $_('clip.play')
 					: $_('clip.openOn', { values: { source: $_(`source.${clip.source}`) } })}</span
@@ -93,7 +93,7 @@
 		{#if clip.tags.length}
 			<ul class="flex flex-wrap gap-1" data-testid="clip-card-tags">
 				{#each clip.tags as tag (tag)}
-					<li class="rounded-full bg-surface-2 px-2 py-0.5 text-xs text-text">{tag}</li>
+					<li class="chip">{tag}</li>
 				{/each}
 			</ul>
 		{/if}
@@ -113,7 +113,7 @@
 		<div class="mt-1 flex flex-wrap items-center gap-2">
 			{#if doneToday}
 				<span
-					class="rounded-md bg-identity-500/15 px-2 py-1 text-xs font-medium text-identity-600"
+					class="rounded-md bg-identity-500/15 px-2 py-1 text-xs font-medium text-identity"
 					data-testid="clip-done-today"
 				>
 					✓ {$_('clip.doneToday')}
@@ -130,7 +130,7 @@
 				<button
 					type="button"
 					on:click={() => ondone(clip)}
-					class="rounded-md border border-identity-500/60 px-2 py-1 text-xs font-medium text-identity-600 hover:bg-identity-500/10"
+					class="rounded-md border border-identity-500/60 px-2 py-1 text-xs font-medium text-identity hover:bg-identity-500/10"
 					data-testid="clip-done"
 				>
 					✓ {$_('clip.done')}

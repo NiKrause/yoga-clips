@@ -28,7 +28,7 @@
 		data-testid="own-did-badge"
 		title={did}
 	>
-		<span class="font-semibold text-identity-600">{$_('identity.passkeyDid')}</span>
+		<span class="font-semibold text-identity">{$_('identity.passkeyDid')}</span>
 		<code class="font-mono" data-testid="own-did-value" data-did={did}>{shortDid(did)}</code>
 		<button
 			type="button"

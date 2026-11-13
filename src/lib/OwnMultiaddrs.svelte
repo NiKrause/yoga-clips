@@ -153,7 +153,7 @@
 						data-multiaddr={address}
 					>
 						{#if copiedAddress === address}
-							<span class="text-xs font-semibold text-identity-600" aria-hidden="true">✓</span>
+							<span class="text-xs font-semibold text-identity" aria-hidden="true">✓</span>
 						{:else}
 							<svg
 								class="h-4 w-4"

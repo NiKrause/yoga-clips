@@ -187,10 +187,7 @@
 	$: formDisabled = disabled || $activePlaylistStore.kind === 'none';
 </script>
 
-<section
-	class="mt-4 rounded-lg border border-border bg-surface p-4 shadow-sm"
-	data-testid="add-clip"
->
+<section class="card mt-4 p-4" data-testid="add-clip">
 	<h2 class="text-lg font-semibold text-heading">{$_('clip.addHeading')}</h2>
 	{#if $activePlaylistStore.kind === 'none' && !disabled}
 		<p class="mt-1 text-xs text-faint">{$_('clip.noPlaylist')}</p>
@@ -308,7 +305,7 @@
 				type="submit"
 				disabled={formDisabled || busy}
 				data-testid="clip-add"
-				class="rounded-md bg-coral-700 px-6 py-2 font-medium text-white transition-colors hover:bg-coral-800 disabled:cursor-not-allowed disabled:opacity-50"
+				class="btn btn-primary px-6"
 			>
 				{busy ? $_('clip.adding') : $_('clip.add')}
 			</button>

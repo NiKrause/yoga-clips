@@ -53,11 +53,11 @@
 
 		switch (type) {
 			case 'success':
-				return `${baseClasses} bg-identity-600 text-white`;
+				return `${baseClasses} bg-heading text-bg`;
 			case 'error':
 				return `${baseClasses} bg-danger-600 text-white`;
 			case 'warning':
-				return `${baseClasses} bg-data-600 text-white`;
+				return `${baseClasses} bg-accent text-accent-ink`;
 			default:
 				return `${baseClasses} bg-code text-white`;
 		}

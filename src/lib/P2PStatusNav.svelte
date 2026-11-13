@@ -247,7 +247,7 @@
 </script>
 
 <nav
-	class="mb-6 rounded-lg border border-border bg-surface px-4 py-3 shadow-sm"
+	class="card mb-6 px-4 py-3"
 	aria-label="P2P initialization and connection status"
 	data-testid="p2p-status-nav"
 >

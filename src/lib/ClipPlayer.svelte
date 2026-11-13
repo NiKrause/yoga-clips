@@ -49,7 +49,7 @@
 	bind:this={dialog}
 	on:close={onclose}
 	on:click={onBackdrop}
-	class="m-auto w-[min(96vw,56rem)] rounded-lg border border-border bg-surface p-0 text-text shadow-xl backdrop:bg-black/70"
+	class="sheet backdrop:bg-black/70"
 	data-testid="player-dialog"
 >
 	{#if clip}
@@ -67,7 +67,7 @@
 			<button
 				type="button"
 				on:click={onclose}
-				class="shrink-0 rounded-md border border-border px-2 py-1 text-sm hover:bg-surface-2"
+				class="btn btn-ghost btn-sm shrink-0"
 				data-testid="player-close"
 				aria-label={$_('player.close')}>✕</button
 			>
@@ -91,7 +91,7 @@
 					href={clip.url}
 					target="_blank"
 					rel="noopener noreferrer"
-					class="shrink-0 rounded-md bg-coral-700 px-5 py-2 font-medium text-white hover:bg-coral-800"
+					class="btn btn-primary shrink-0"
 					data-testid="player-open-external"
 				>
 					{$_('clip.openOn', { values: { source: $_(`source.${clip.source}`) } })}
@@ -111,7 +111,7 @@
 					href={clip.url}
 					target="_blank"
 					rel="noopener noreferrer"
-					class="rounded-md bg-coral-700 px-5 py-2 font-medium text-white hover:bg-coral-800"
+					class="btn btn-primary"
 					data-testid="player-open-external"
 				>
 					{$_('clip.openOn', { values: { source: $_(`source.${clip.source}`) } })}
@@ -122,14 +122,14 @@
 		<div class="flex flex-wrap items-center gap-2 px-4 py-3">
 			{#if doneToday}
 				<span
-					class="rounded-md bg-identity-500/15 px-3 py-1.5 text-sm font-medium text-identity-600"
+					class="rounded-md bg-identity-500/15 px-3 py-1.5 text-sm font-medium text-identity"
 					data-testid="player-done-today">✓ {$_('clip.doneToday')}</span
 				>
 			{:else}
 				<button
 					type="button"
 					on:click={() => clip && ondone(clip)}
-					class="rounded-md bg-identity-600 px-3 py-1.5 text-sm font-medium text-white hover:bg-identity-800"
+					class="btn btn-primary btn-sm"
 					data-testid="player-done"
 				>
 					✓ {$_('clip.done')}
@@ -138,7 +138,7 @@
 			<button
 				type="button"
 				on:click={copyLink}
-				class="rounded-md border border-border px-3 py-1.5 text-sm hover:bg-surface-2"
+				class="btn btn-ghost btn-sm"
 				data-testid="player-copy-link"
 			>
 				{copied ? $_('player.copiedLink') : $_('player.copyLink')}

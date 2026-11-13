@@ -44,7 +44,7 @@
 		target="_blank"
 		rel="noopener noreferrer"
 		aria-label="LinkedIn"
-		class="rounded-md p-2 text-text transition-colors duration-200 hover:bg-surface-2 hover:text-cyan-700"
+		class="rounded-md p-2 text-text transition-colors duration-200 hover:bg-surface-2 hover:text-cyan"
 		title="LinkedIn (/in/nicokrause)"
 	>
 		<svg class={size} fill="currentColor" viewBox="0 0 24 24" aria-hidden="true">

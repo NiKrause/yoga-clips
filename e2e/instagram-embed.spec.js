@@ -52,14 +52,27 @@ test('an Instagram clip asks nothing of Instagram before the click, and its embe
 	await expect(open).toHaveAttribute('href', REEL);
 	await expect(open).toHaveAttribute('target', '_blank');
 
-	// Its label is white on the filled button in both themes — it used to
-	// come out in the link colour.
+	// Its label has the colour meant for text on the accent fill, in both
+	// themes — it once came out in the link colour, which is hard to read there.
 	for (const dark of [false, true]) {
 		await page.evaluate((on) => document.documentElement.classList.toggle('dark', on), dark);
-		expect(
-			await open.evaluate((element) => getComputedStyle(element).color),
-			dark ? 'dark' : 'light'
-		).toBe('rgb(255, 255, 255)');
+		const { label, onAccent, link } = await open.evaluate((element) => {
+			const probe = (/** @type {string} */ value) => {
+				const span = document.createElement('span');
+				span.style.color = value;
+				document.body.append(span);
+				const colour = getComputedStyle(span).color;
+				span.remove();
+				return colour;
+			};
+			return {
+				label: getComputedStyle(element).color,
+				onAccent: probe('var(--accent-ink)'),
+				link: probe('var(--cyan)')
+			};
+		});
+		expect(label, dark ? 'dark' : 'light').toBe(onAccent);
+		expect(label, dark ? 'dark' : 'light').not.toBe(link);
 	}
 
 	await page.getByTestId('player-close').click();
