@@ -53,12 +53,24 @@ jobs:
       - name: Unit tests
         run: pnpm run test:unit
 
-      - name: E2E (shared playlist, permissions, export, deep link, consent, passkey steps)
+      # Two runs, each with a relay of its own (start-e2e-server.mjs starts a
+      # fresh one per run). The replication specs measure what travels between
+      # their own browsers through the relay; run after the other specs, they
+      # waited behind the relay's sync of a playlist whose browser had already
+      # closed (the cinema spec's) and timed out (2 of 5 local runs, and the
+      # deploy run of f53f575).
+      - name: E2E (shared playlist, permissions, export, deep link, manual connection)
         id: e2e
         run: >-
           pnpm exec playwright test
           e2e/clips-sharing.spec.js
           e2e/manual-multiaddr-connection.spec.js
+          --project=chromium
+
+      - name: E2E (consent, passkey steps, Instagram, cinema)
+        id: e2e_rest
+        run: >-
+          pnpm exec playwright test
           e2e/consent-identity-choice.spec.js
           e2e/passkey-steps.spec.js
           e2e/instagram-embed.spec.js
@@ -69,14 +81,15 @@ jobs:
         if: always()
         env:
           E2E_OUTCOME: ${{ steps.e2e.outcome }}
+          E2E_REST_OUTCOME: ${{ steps.e2e_rest.outcome }}
         run: |
           {
             echo '## end-to-end test'
             echo
-            if [ "${E2E_OUTCOME}" = 'success' ]; then
+            if [ "${E2E_OUTCOME}" = 'success' ] && [ "${E2E_REST_OUTCOME}" = 'success' ]; then
               echo '**Result:** ✅ passed'
             else
-              echo "**Result:** ❌ ${E2E_OUTCOME}"
+              echo "**Result:** ❌ replication ${E2E_OUTCOME}, the rest ${E2E_REST_OUTCOME}"
             fi
             echo
             echo 'Chromium, a local OrbitDB relay, two isolated browser contexts with their own passkeys.'
@@ -87,8 +100,9 @@ jobs:
             echo "| Bob opens it by address, sees the clip, is refused when writing | ${E2E_OUTCOME} |"
             echo "| Alice grants Bob's DID; his clip replicates to Alice | ${E2E_OUTCOME} |"
             echo "| The export is a clips.json in the yoga-break schema | ${E2E_OUTCOME} |"
-            echo "| ?clip=<id> opens the clip in the player; done marks stay local | ${E2E_OUTCOME} |"
+            echo "| ?clip=<id> opens the clip in the cinema page; done marks stay local | ${E2E_OUTCOME} |"
             echo "| A copied own multiaddress connects a second browser | ${E2E_OUTCOME} |"
+            echo "| Consent gate, passkey steps, Instagram frame, cinema page (own relay) | ${E2E_REST_OUTCOME} |"
           } >> "$GITHUB_STEP_SUMMARY"
 
   build-and-deploy:
