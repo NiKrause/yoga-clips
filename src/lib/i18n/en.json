@@ -123,23 +123,23 @@
 		"heading": "Playlists",
 		"none": "No playlist is open. Create one, or open one a friend shared with you.",
 		"createHeading": "New playlist",
-		"createHint": "Only your identity can write to it. Share its address and let friends in below.",
+		"createHint": "Only you can add clips to it. Share it, and let friends in below.",
 		"namePlaceholder": "name, e.g. Morning shoulders",
 		"create": "Create playlist",
 		"creating": "Creating…",
 		"created": "{name} is open - you are adding to it now.",
 		"yoursHeading": "Your playlists",
-		"yoursHint": "Kept in your own OrbitDB registry, so they come back after a reload and follow your passkey to another device.",
+		"yoursHint": "Kept in this browser, and with a passkey on your other devices too.",
 		"open": "Open",
 		"active": "open",
-		"forget": "Forget",
-		"forgetTitle": "Remove from this list; the playlist itself is untouched",
+		"forget": "Remove from my list",
+		"forgetTitle": "Remove it from your list; the playlist itself stays as it is",
 		"roleOwner": "yours",
 		"roleGuest": "shared with you",
 		"unnamed": "unnamed playlist",
 		"openByAddressHeading": "Open a shared playlist",
-		"openByAddressHint": "Paste the address or link a friend sent you. You can watch right away - adding clips needs their permission.",
-		"addressPlaceholder": "/orbitdb/… or a link to this app",
+		"openByAddressHint": "Paste the link a friend sent you. You can watch right away; adding clips needs their permission.",
+		"addressPlaceholder": "a link to a playlist",
 		"openButton": "Open playlist",
 		"opening": "Opening…",
 		"kindOwner": "Your playlist",
@@ -147,20 +147,19 @@
 	},
 	"share": {
 		"heading": "Share this playlist",
-		"hint": "Anyone with this link can open and watch the playlist. To let a friend add clips, add their DID under write permissions.",
+		"hint": "Anyone with this link can open and watch the playlist. To let a friend add clips, let them in under “Who may add clips”.",
 		"link": "Link",
-		"address": "OrbitDB address",
 		"copy": "Copy",
 		"copied": "Copied",
 		"qrAlt": "QR code of the link to this playlist"
 	},
 	"permissions": {
-		"heading": "Write permissions",
-		"hint": "Identities (DIDs) allowed to add clips to this playlist. Only the owner can add or remove them.",
+		"heading": "Who may add clips",
+		"hint": "Friends you let in can add clips to this playlist. Each of them finds their identity behind the connection point and sends it to you. Only the owner can change this.",
 		"you": "(you)",
 		"remove": "Remove",
-		"didPlaceholder": "did:key:… of the friend to allow",
-		"add": "Add DID",
+		"didPlaceholder": "your friend’s identity (did:key:…)",
+		"add": "Let in",
 		"grantFailed": "Grant failed: {reason}",
 		"revokeFailed": "Revoke failed: {reason}"
 	},
@@ -192,7 +191,7 @@
 		"invalidUrl": "That is not a link we can open.",
 		"invalidTitle": "Please give the clip a title.",
 		"invalidDuration": "Please enter the duration, between 30 seconds and 60 minutes.",
-		"denied": "Your identity has no write permission for this playlist. Ask the owner to add your DID.",
+		"denied": "You may not add clips to this playlist yet. Ask its owner to let you in.",
 		"failed": "Adding the clip failed: {reason}",
 		"noPlaylist": "Open or create a playlist first.",
 		"remove": "Remove",
@@ -205,8 +204,9 @@
 		"doneCount": "{count, plural, =0 {never done} one {done once} other {done # times}}",
 		"undoDone": "Undo",
 		"markedDone": "Marked as done: {minutes} min",
-		"addedBy": "added by",
-		"noThumbnail": "No preview"
+		"noThumbnail": "No preview",
+		"addedByYou": "added by you",
+		"addedByOther": "added by someone else"
 	},
 	"filter": {
 		"heading": "Find a clip",
@@ -222,8 +222,8 @@
 		"emptyFiltered": "No clip fits. Loosen the filters a little."
 	},
 	"transfer": {
-		"heading": "clips.json",
-		"hint": "The file the yoga-break mod for Claude Code reads from ~/.yoga/clips.json. Export writes every clip of this playlist in that format; import reads one back.",
+		"heading": "Suggestions in Claude",
+		"hint": "The yoga-break mod for Claude Code suggests a clip from this playlist while Claude works on something long. It reads the playlist from a file, clips.json: export it here, or import one back.",
 		"export": "Export clips.json",
 		"import": "Import clips.json",
 		"nothing": "This playlist has no clips to export.",
@@ -268,5 +268,127 @@
 	"status": {
 		"ready": "Ready",
 		"starting": "Starting…"
+	},
+	"connection": {
+		"state": {
+			"starting": "Starting…",
+			"connecting": "Connecting…",
+			"connected": "Connected",
+			"failed": "Not connected"
+		},
+		"title": "Connection and technology",
+		"hint": "What runs under the hood, for those who want to know.",
+		"close": "Close",
+		"identityHeading": "Your identity",
+		"identityHint": "To let you add clips to their playlist, its owner needs this. Copy it and send it to them.",
+		"identityAnonymous": "You use a random identity that exists only in this browser.",
+		"addressHeading": "This playlist’s address",
+		"addressHint": "The playlist’s place in the network. The share link carries it too."
+	},
+	"network": {
+		"status": {
+			"navLabel": "P2P initialization and connection status",
+			"ready": "P2P network ready",
+			"connectingRelay": "Connecting to relay",
+			"waitingWebrtc": "Waiting for WebRTC connection",
+			"failed": "Failed to initialize {step}",
+			"initializing": "Initializing {step}",
+			"preparing": "Preparing P2P network",
+			"details": "Network details",
+			"peerCount": "{count, plural, one {# peer} other {# peers}}"
+		},
+		"step": {
+			"config": {
+				"label": "Network config",
+				"description": "Validates the configured browser-reachable relay addresses and prepares the libp2p transports and services."
+			},
+			"libp2p": {
+				"label": "libp2p",
+				"description": "Creates and starts the libp2p node, including its peer identity, discovery, relay, WebSocket and WebRTC support."
+			},
+			"helia": {
+				"label": "Helia",
+				"description": "Starts the Helia IPFS node on top of libp2p and enables block exchange and HTTP retrieval."
+			},
+			"orbitdb": {
+				"label": "OrbitDB",
+				"description": "Loads or creates the persistent OrbitDB identity and initializes OrbitDB using the Helia node."
+			},
+			"playlists": {
+				"label": "Playlists",
+				"description": "Opens your playlist registry and the playlist you used last, and starts OrbitDB pubsub synchronization."
+			},
+			"localClips": {
+				"label": "Local clips",
+				"description": "Hydrates the clips from the local OrbitDB log in the background without blocking the application."
+			},
+			"relay": {
+				"label": "Relay connected",
+				"description": "A live WebSocket connection to a relay/bootstrap peer is available for discovery, pubsub and circuit relay traffic.",
+				"notConnected": "No relay is connected yet.",
+				"noHealthUrl": "No HTTPS health URL can be derived from the connected relay address.",
+				"loading": "Reading the OrbitDB relay version from {origin}/health…",
+				"verifiedVersion": "OrbitDB relay version {version}; health and peer ID verified at {origin}/health.",
+				"verified": "Health and peer ID verified at {origin}/health. This relay does not expose its OrbitDB relay version.",
+				"unverified": "{origin}/health could not be verified, so its OrbitDB relay version is unavailable."
+			},
+			"webrtc": {
+				"label": "WebRTC connected",
+				"description": "A live libp2p connection using WebRTC is available. This normally appears after another browser peer has been discovered."
+			}
+		},
+		"copy": {
+			"action": "Copy to clipboard",
+			"done": "Copied!"
+		},
+		"peers": {
+			"title": "Connected Peers",
+			"empty": "No peers connected yet.",
+			"online": "Online",
+			"disconnect": "Disconnect peer"
+		},
+		"peerId": {
+			"title": "My Peer ID",
+			"description": "Share this ID with others to assign TODOs to you.",
+			"loading": "Loading...",
+			"copied": "Copied to clipboard!"
+		},
+		"multiaddrs": {
+			"title": "My Multiaddresses",
+			"hint": "Copy an address to connect another browser directly.",
+			"copyLabel": "Copy multiaddress {index}",
+			"copied": "Multiaddress copied to clipboard.",
+			"waiting": "Waiting for a dialable address…"
+		},
+		"connect": {
+			"title": "Connect to relay",
+			"hint": "Choose a current browser-reachable relay discovered through Aleph.",
+			"discovering": "Discovering and pinging Aleph relays…",
+			"noneDiscovered": "No relay addresses discovered",
+			"loading": "Loading…",
+			"refresh": "Refresh",
+			"useCustom": "Use a custom multiaddress",
+			"placeholder": "/dns4/example.com/tcp/443/wss/p2p/12D3KooW...",
+			"discoveryFailed": "Aleph relay discovery failed: {error}",
+			"discoveryUnavailable": "Relay discovery unavailable",
+			"noneAnswered": "{count, plural, one {None of the # discovered relay addresses answered a libp2p ping.} other {None of the # discovered relay addresses answered a libp2p ping.}}",
+			"noneDialable": "No current browser-dialable relays were found.",
+			"refreshOrCustom": "Refresh or enter a custom multiaddress.",
+			"enterAddress": "Enter a multiaddress to connect to a peer.",
+			"mustStartWithSlash": "A multiaddress must start with \"/\".",
+			"dialing": "Dialing peer",
+			"dialingDetail": "Opening the websocket and completing the libp2p handshake...",
+			"stable": "Connection stable",
+			"dropped": "Connection dropped",
+			"connecting": "Connecting...",
+			"connect": "Connect"
+		},
+		"transport": {
+			"webrtc": "WebRTC",
+			"relay": "Relay",
+			"websocket": "WS",
+			"webtransport": "WebTransport",
+			"tcp": "TCP"
+		}
 	}
 }

@@ -30,33 +30,42 @@ export { setWebRTCEnabled, webrtcEnabledStore };
 // because plenty of callers legitimately want both from one import.
 export { libp2pStore, peerIdStore, ownDidStore, initializationStore } from './p2p-stores.js';
 
+// `label` and `description` stay in English for anything that reads the store
+// directly (logs, diagnostics); what a person sees comes from the catalogue
+// under `key` (`<key>.label`, `<key>.description`), rendered by P2PStatusNav.
 const INITIALIZATION_STEP_DEFINITIONS = [
 	{
+		key: 'network.step.config',
 		label: 'Network config',
 		description:
 			'Validates the configured browser-reachable relay addresses and prepares the libp2p transports and services.'
 	},
 	{
+		key: 'network.step.libp2p',
 		label: 'libp2p',
 		description:
 			'Creates and starts the libp2p node, including its peer identity, discovery, relay, WebSocket and WebRTC support.'
 	},
 	{
+		key: 'network.step.helia',
 		label: 'Helia',
 		description:
 			'Starts the Helia IPFS node on top of libp2p and enables block exchange and HTTP retrieval.'
 	},
 	{
+		key: 'network.step.orbitdb',
 		label: 'OrbitDB',
 		description:
 			'Loads or creates the persistent OrbitDB identity and initializes OrbitDB using the Helia node.'
 	},
 	{
+		key: 'network.step.playlists',
 		label: 'Playlists',
 		description:
 			'Opens your playlist registry and the playlist you used last, and starts OrbitDB pubsub synchronization.'
 	},
 	{
+		key: 'network.step.localClips',
 		label: 'Local clips',
 		description:
 			'Hydrates the clips from the local OrbitDB log in the background without blocking the application.'
@@ -65,12 +74,13 @@ const INITIALIZATION_STEP_DEFINITIONS = [
 
 /**
  * @typedef {'pending' | 'active' | 'complete' | 'error'} InitializationStepStatus
- * @typedef {{ label: string, description: string, status: InitializationStepStatus }} InitializationStep
+ * @typedef {{ key: string, label: string, description: string, status: InitializationStepStatus }} InitializationStep
  */
 
 /** @param {number} [activeIndex=-1] */
 function createInitializationSteps(activeIndex = -1) {
-	return INITIALIZATION_STEP_DEFINITIONS.map(({ label, description }, index) => ({
+	return INITIALIZATION_STEP_DEFINITIONS.map(({ key, label, description }, index) => ({
+		key,
 		label,
 		description,
 		status: /** @type {InitializationStepStatus} */ (

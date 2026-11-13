@@ -4,6 +4,7 @@ import { rememberList, listRegistryStore, openListRegistry } from '../list-regis
 import { relayHttpStatusStore } from '../relay-status.js';
 import { createClip, toExportDocument, validateClip } from './schema.js';
 import { parseAppLink } from './share.js';
+export { playlistDisplayName } from './names.js';
 
 /**
  * The playlists: one OrbitDB *documents* database per playlist, one document

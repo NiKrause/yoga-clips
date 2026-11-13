@@ -123,23 +123,23 @@
 		"heading": "Playlists",
 		"none": "Keine Playlist geöffnet. Leg eine an oder öffne eine, die dir jemand geteilt hat.",
 		"createHeading": "Neue Playlist",
-		"createHint": "Nur deine Identität kann hineinschreiben. Teile die Adresse und lass unten Freunde hinein.",
+		"createHint": "Nur du kannst Clips hinzufügen. Teile sie und lass unten Freunde hinein.",
 		"namePlaceholder": "Name, z. B. Schultern am Morgen",
 		"create": "Playlist anlegen",
 		"creating": "Wird angelegt…",
 		"created": "{name} ist offen - du fügst jetzt hier hinzu.",
 		"yoursHeading": "Deine Playlists",
-		"yoursHint": "Liegen in deinem eigenen OrbitDB-Register, kommen nach dem Neuladen wieder und folgen deinem Passkey auf ein anderes Gerät.",
+		"yoursHint": "Liegen in diesem Browser und, mit einem Passkey, auch auf deinen anderen Geräten.",
 		"open": "Öffnen",
 		"active": "offen",
-		"forget": "Vergessen",
-		"forgetTitle": "Aus dieser Liste entfernen; die Playlist selbst bleibt unberührt",
+		"forget": "Aus meiner Liste entfernen",
+		"forgetTitle": "Aus deiner Liste entfernen; die Playlist selbst bleibt, wie sie ist",
 		"roleOwner": "deine",
 		"roleGuest": "mit dir geteilt",
 		"unnamed": "Playlist ohne Namen",
 		"openByAddressHeading": "Geteilte Playlist öffnen",
-		"openByAddressHint": "Füge die Adresse oder den Link ein, den dir jemand geschickt hat. Zuschauen geht sofort - Clips hinzufügen braucht die Erlaubnis.",
-		"addressPlaceholder": "/orbitdb/… oder ein Link zu dieser App",
+		"openByAddressHint": "Füge den Link ein, den dir jemand geschickt hat. Zuschauen geht sofort; Clips hinzufügen braucht die Erlaubnis.",
+		"addressPlaceholder": "Link zu einer Playlist",
 		"openButton": "Playlist öffnen",
 		"opening": "Wird geöffnet…",
 		"kindOwner": "Deine Playlist",
@@ -147,20 +147,19 @@
 	},
 	"share": {
 		"heading": "Diese Playlist teilen",
-		"hint": "Wer diesen Link hat, kann die Playlist öffnen und ansehen. Damit eine Freundin Clips hinzufügen kann, trag ihre DID unter Schreibrechte ein.",
+		"hint": "Wer diesen Link hat, kann die Playlist öffnen und ansehen. Damit eine Freundin Clips hinzufügen kann, lass sie unter „Wer Clips hinzufügen darf“ hinein.",
 		"link": "Link",
-		"address": "OrbitDB-Adresse",
 		"copy": "Kopieren",
 		"copied": "Kopiert",
 		"qrAlt": "QR-Code des Links zu dieser Playlist"
 	},
 	"permissions": {
-		"heading": "Schreibrechte",
-		"hint": "Identitäten (DIDs), die Clips in diese Playlist einfügen dürfen. Nur die Eigentümerin kann sie hinzufügen oder entfernen.",
+		"heading": "Wer Clips hinzufügen darf",
+		"hint": "Freundinnen und Freunde, die du hineinlässt, können Clips zu dieser Playlist hinzufügen. Ihre Identität finden sie hinter dem Verbindungspunkt und schicken sie dir. Ändern kann das nur die Eigentümerin.",
 		"you": "(du)",
 		"remove": "Entfernen",
-		"didPlaceholder": "did:key:… der Freundin, die darf",
-		"add": "DID hinzufügen",
+		"didPlaceholder": "Identität deiner Freundin (did:key:…)",
+		"add": "Hineinlassen",
 		"grantFailed": "Freigabe fehlgeschlagen: {reason}",
 		"revokeFailed": "Entzug fehlgeschlagen: {reason}"
 	},
@@ -192,7 +191,7 @@
 		"invalidUrl": "Das ist kein Link, den wir öffnen können.",
 		"invalidTitle": "Bitte gib dem Clip einen Titel.",
 		"invalidDuration": "Bitte die Dauer eingeben, zwischen 30 Sekunden und 60 Minuten.",
-		"denied": "Deine Identität hat kein Schreibrecht für diese Playlist. Bitte die Eigentümerin, deine DID einzutragen.",
+		"denied": "Du darfst in dieser Playlist noch keine Clips hinzufügen. Bitte die Eigentümerin, dich hineinzulassen.",
 		"failed": "Der Clip konnte nicht hinzugefügt werden: {reason}",
 		"noPlaylist": "Öffne oder erstelle zuerst eine Playlist.",
 		"remove": "Entfernen",
@@ -205,8 +204,9 @@
 		"doneCount": "{count, plural, =0 {noch nie absolviert} one {einmal absolviert} other {# Mal absolviert}}",
 		"undoDone": "Rückgängig",
 		"markedDone": "Als absolviert markiert: {minutes} Min.",
-		"addedBy": "hinzugefügt von",
-		"noThumbnail": "Keine Vorschau"
+		"noThumbnail": "Keine Vorschau",
+		"addedByYou": "von dir hinzugefügt",
+		"addedByOther": "von jemand anderem hinzugefügt"
 	},
 	"filter": {
 		"heading": "Clip finden",
@@ -222,8 +222,8 @@
 		"emptyFiltered": "Kein Clip passt. Lockere die Filter ein wenig."
 	},
 	"transfer": {
-		"heading": "clips.json",
-		"hint": "Die Datei, die der yoga-break-Mod für Claude Code aus ~/.yoga/clips.json liest. Export schreibt alle Clips dieser Playlist in diesem Format; Import liest eine solche Datei zurück.",
+		"heading": "Vorschläge in Claude",
+		"hint": "Der Mod yoga-break für Claude Code schlägt einen Clip aus dieser Playlist vor, während Claude an etwas Langem arbeitet. Er liest die Playlist aus einer Datei, clips.json: Hier exportierst du sie oder importierst eine zurück.",
 		"export": "clips.json exportieren",
 		"import": "clips.json importieren",
 		"nothing": "Diese Playlist hat keine Clips zum Exportieren.",
@@ -268,5 +268,127 @@
 	"status": {
 		"ready": "Bereit",
 		"starting": "Startet…"
+	},
+	"connection": {
+		"state": {
+			"starting": "Startet…",
+			"connecting": "Verbindet…",
+			"connected": "Verbunden",
+			"failed": "Nicht verbunden"
+		},
+		"title": "Verbindung und Technik",
+		"hint": "Was unter der Haube läuft, für alle, die es wissen wollen.",
+		"close": "Schließen",
+		"identityHeading": "Deine Identität",
+		"identityHint": "Damit du Clips zu einer Playlist hinzufügen darfst, braucht ihre Eigentümerin diese Angabe. Kopier sie und schick sie ihr.",
+		"identityAnonymous": "Du nutzt eine zufällige Identität, die es nur in diesem Browser gibt.",
+		"addressHeading": "Adresse dieser Playlist",
+		"addressHint": "Der Ort der Playlist im Netz. Der Link zum Teilen enthält sie auch."
+	},
+	"network": {
+		"status": {
+			"navLabel": "Start und Verbindungsstatus des P2P-Netzwerks",
+			"ready": "P2P-Netzwerk bereit",
+			"connectingRelay": "Verbindung zum Relay wird aufgebaut",
+			"waitingWebrtc": "Warte auf eine WebRTC-Verbindung",
+			"failed": "{step} konnte nicht gestartet werden",
+			"initializing": "{step} wird gestartet",
+			"preparing": "P2P-Netzwerk wird vorbereitet",
+			"details": "Netzwerkdetails",
+			"peerCount": "{count, plural, one {# Peer} other {# Peers}}"
+		},
+		"step": {
+			"config": {
+				"label": "Netzwerk-Einstellungen",
+				"description": "Prüft die eingestellten Relay-Adressen, die der Browser erreichen kann, und bereitet die Verbindungswege und Dienste von libp2p vor."
+			},
+			"libp2p": {
+				"label": "libp2p",
+				"description": "Legt den libp2p-Knoten an und startet ihn, mit seiner Peer-Identität, der Suche nach anderen Peers, Relay, WebSocket und WebRTC."
+			},
+			"helia": {
+				"label": "Helia",
+				"description": "Startet den Helia-IPFS-Knoten auf libp2p, damit Datenblöcke ausgetauscht und über HTTP geladen werden können."
+			},
+			"orbitdb": {
+				"label": "OrbitDB",
+				"description": "Lädt die gespeicherte OrbitDB-Identität oder legt sie neu an und startet OrbitDB mit dem Helia-Knoten."
+			},
+			"playlists": {
+				"label": "Playlists",
+				"description": "Öffnet das Verzeichnis deiner Playlists und die Playlist, die du zuletzt benutzt hast, und startet den Abgleich über OrbitDB-Pubsub."
+			},
+			"localClips": {
+				"label": "Lokale Clips",
+				"description": "Lädt die Clips im Hintergrund aus dem lokalen OrbitDB-Log, ohne die App aufzuhalten."
+			},
+			"relay": {
+				"label": "Relay verbunden",
+				"description": "Eine WebSocket-Verbindung zu einem Relay- bzw. Bootstrap-Peer steht. Über sie werden andere Peers gefunden, Pubsub-Nachrichten verschickt und Verbindungen über den Relay weitergeleitet.",
+				"notConnected": "Noch ist kein Relay verbunden.",
+				"noHealthUrl": "Aus der Adresse des verbundenen Relays lässt sich keine HTTPS-Adresse für die Statusabfrage ableiten.",
+				"loading": "Die Version des OrbitDB-Relays wird von {origin}/health gelesen…",
+				"verifiedVersion": "Version des OrbitDB-Relays: {version}; Status und Peer-ID unter {origin}/health bestätigt.",
+				"verified": "Status und Peer-ID unter {origin}/health bestätigt. Dieser Relay gibt seine OrbitDB-Relay-Version nicht an.",
+				"unverified": "{origin}/health ließ sich nicht prüfen, deshalb ist die Version des OrbitDB-Relays nicht bekannt."
+			},
+			"webrtc": {
+				"label": "WebRTC verbunden",
+				"description": "Eine libp2p-Verbindung über WebRTC steht. Das passiert meist, sobald ein anderer Browser als Peer gefunden wurde."
+			}
+		},
+		"copy": {
+			"action": "In die Zwischenablage kopieren",
+			"done": "Kopiert!"
+		},
+		"peers": {
+			"title": "Verbundene Peers",
+			"empty": "Noch keine Peers verbunden.",
+			"online": "Online",
+			"disconnect": "Verbindung zum Peer trennen"
+		},
+		"peerId": {
+			"title": "Meine Peer-ID",
+			"description": "Teile diese ID mit anderen, damit sie dir TODOs zuweisen können.",
+			"loading": "Wird geladen...",
+			"copied": "In die Zwischenablage kopiert!"
+		},
+		"multiaddrs": {
+			"title": "Meine Multiadressen",
+			"hint": "Kopiere eine Adresse, um einen anderen Browser direkt mit diesem zu verbinden.",
+			"copyLabel": "Multiadresse {index} kopieren",
+			"copied": "Multiadresse in die Zwischenablage kopiert.",
+			"waiting": "Warte auf eine Adresse, über die man dich erreichen kann…"
+		},
+		"connect": {
+			"title": "Mit einem Relay verbinden",
+			"hint": "Wähle einen Relay, den Aleph gefunden hat und den dein Browser gerade erreichen kann.",
+			"discovering": "Suche Aleph-Relays und prüfe, ob sie antworten…",
+			"noneDiscovered": "Keine Relay-Adressen gefunden",
+			"loading": "Lädt…",
+			"refresh": "Aktualisieren",
+			"useCustom": "Eigene Multiadresse verwenden",
+			"placeholder": "/dns4/example.com/tcp/443/wss/p2p/12D3KooW...",
+			"discoveryFailed": "Die Suche nach Aleph-Relays ist fehlgeschlagen: {error}",
+			"discoveryUnavailable": "Suche nach Relays nicht verfügbar",
+			"noneAnswered": "{count, plural, one {Die gefundene Relay-Adresse hat nicht auf einen libp2p-Ping geantwortet.} other {Keine der # gefundenen Relay-Adressen hat auf einen libp2p-Ping geantwortet.}}",
+			"noneDialable": "Gerade ist kein Relay zu finden, den dein Browser erreichen kann.",
+			"refreshOrCustom": "Aktualisiere die Liste oder gib eine eigene Multiadresse ein.",
+			"enterAddress": "Gib eine Multiadresse ein, um dich mit einem Peer zu verbinden.",
+			"mustStartWithSlash": "Eine Multiadresse muss mit „/“ beginnen.",
+			"dialing": "Verbindung zum Peer wird aufgebaut",
+			"dialingDetail": "Öffne die WebSocket-Verbindung und schließe den libp2p-Handshake ab...",
+			"stable": "Verbindung stabil",
+			"dropped": "Verbindung abgebrochen",
+			"connecting": "Wird verbunden...",
+			"connect": "Verbinden"
+		},
+		"transport": {
+			"webrtc": "WebRTC",
+			"relay": "Relay",
+			"websocket": "WS",
+			"webtransport": "WebTransport",
+			"tcp": "TCP"
+		}
 	}
 }

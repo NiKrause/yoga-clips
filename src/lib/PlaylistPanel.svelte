@@ -11,6 +11,7 @@
 		forgetList
 	} from './list-registry.js';
 	import {
+		playlistDisplayName,
 		orbitdbStore,
 		playlistAddressStore,
 		createPlaylist,
@@ -107,7 +108,7 @@
 			<ul class="mt-2" data-testid="playlist-switcher-items">
 				{#each $listRegistryStore as entry (entry.address)}
 					{@const active = entry.address === $playlistAddressStore}
-					<li class="list-row !gap-2 !py-1.5">
+					<li class="list-row flex-wrap !gap-2 !py-1.5">
 						<button
 							type="button"
 							on:click={() => openKnown(entry.address)}
@@ -115,20 +116,19 @@
 							data-testid="playlist-switcher-open"
 							data-address={entry.address}
 							data-active={active}
-							class="min-w-0 flex-1 rounded-md border px-2 py-1.5 text-left text-xs disabled:opacity-50 {active
+							class="min-w-[12rem] flex-1 rounded-md border px-2 py-1.5 text-left text-xs disabled:opacity-50 {active
 								? 'border-identity-500 bg-identity-500/10'
 								: 'border-border hover:bg-surface-2'}"
 						>
-							<span class="font-medium text-heading">{entry.name || $_('playlist.unnamed')}</span>
+							<span class="font-medium text-heading"
+								>{playlistDisplayName(entry.name) || $_('playlist.unnamed')}</span
+							>
 							<span class="ml-1 text-faint"
 								>· {entry.role === 'owner'
 									? $_('playlist.roleOwner')
 									: $_('playlist.roleGuest')}</span
 							>
 							{#if active}<span class="ml-1 text-identity">· {$_('playlist.active')}</span>{/if}
-							<code class="mt-0.5 block truncate font-mono text-[10px] text-faint"
-								>{entry.address}</code
-							>
 						</button>
 						<button
 							type="button"

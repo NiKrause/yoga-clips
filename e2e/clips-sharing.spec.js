@@ -173,9 +173,12 @@ async function createPlaylist(page, name) {
 
 /** @param {import('@playwright/test').Page} page */
 async function getOwnDid(page) {
+	// The identity sits behind the connection point (NiKrause/yoga-clips#1, step 3).
+	await page.getByTestId('connection-point').click();
 	const badge = page.getByTestId('own-did-value');
 	await expect(badge).toBeVisible({ timeout });
 	const did = await badge.getAttribute('data-did');
+	await page.getByTestId('connection-sheet-close').click();
 	if (!did) throw new Error('own DID badge has no data-did');
 	return did;
 }
@@ -245,9 +248,13 @@ async function addClipOk(page, clip) {
 async function addClipExpectDenied(page, clip) {
 	await fillClip(page, clip);
 	await page.getByTestId('clip-add').click();
-	await expect(page.getByTestId('clip-error')).toContainText(/write permission|Schreibrecht/, {
-		timeout
-	});
+	// The refusal in the words people use (NiKrause/yoga-clips#1, step 3).
+	await expect(page.getByTestId('clip-error')).toContainText(
+		/may not add clips|darfst .* keine Clips/,
+		{
+			timeout
+		}
+	);
 }
 
 /**
