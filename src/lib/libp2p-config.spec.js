@@ -31,6 +31,18 @@ describe('isInsecureWebSocketDial', () => {
 		expect(isInsecureWebSocketDial(`/dns4/example.com/tcp/4002/wss${PEER}`, HTTPS)).toBe(false);
 	});
 
+	it('allows plain ws to this machine on an https page (loopback is not mixed content)', () => {
+		expect(isInsecureWebSocketDial(`/ip4/127.0.0.1/tcp/49212/ws${PEER}`, HTTPS)).toBe(false);
+		expect(isInsecureWebSocketDial(`/ip4/127.0.0.53/tcp/4001/ws${PEER}`, HTTPS)).toBe(false);
+		expect(isInsecureWebSocketDial(`/ip6/::1/tcp/4001/ws${PEER}`, HTTPS)).toBe(false);
+		expect(isInsecureWebSocketDial(`/dns4/localhost/tcp/4001/ws${PEER}`, HTTPS)).toBe(false);
+		// Only the loopback itself: an address that merely starts alike is not.
+		expect(isInsecureWebSocketDial(`/ip4/128.0.0.1/tcp/4001/ws${PEER}`, HTTPS)).toBe(true);
+		expect(isInsecureWebSocketDial(`/dns4/localhost.example.com/tcp/4001/ws${PEER}`, HTTPS)).toBe(
+			true
+		);
+	});
+
 	it('leaves non-websocket transports untouched', () => {
 		expect(isInsecureWebSocketDial(`/ip4/1.2.3.4/udp/4001/webrtc-direct${PEER}`, HTTPS)).toBe(
 			false

@@ -69,7 +69,10 @@ console.log('RELAY_BOOTSTRAP_ADDR', RELAY_BOOTSTRAP_ADDR);
  * `/tls/ws` and the AutoTLS `/tls/sni/<host>/ws` form) or `/wss`.
  *
  * On an http:// origin (local dev, the Playwright E2E suite) mixed content
- * does not apply, so plain `/ws` stays dialable there.
+ * does not apply, so plain `/ws` stays dialable there. Nor does it for this
+ * machine: a loopback address (`127.0.0.0/8`, `::1`, `localhost`) is
+ * "potentially trustworthy" to the browser, and `ws://127.0.0.1` is allowed
+ * from an https page — a relay running next to the browser stays dialable.
  *
  * @param {{ toString: () => string }} multiaddr
  * @param {string} [pageProtocol] defaults to the current page protocol
@@ -84,6 +87,8 @@ export function isInsecureWebSocketDial(
 	const address = String(multiaddr).toLowerCase();
 	const isWebSocket = /\/wss?(\/|$)/.test(address);
 	if (!isWebSocket) return false;
+	if (/^\/(ip4\/127\.\d+\.\d+\.\d+|ip6\/::1|dns4?\/localhost|dns6\/localhost)\//.test(address))
+		return false;
 
 	return !address.includes('/tls/') && !/\/wss(\/|$)/.test(address);
 }
