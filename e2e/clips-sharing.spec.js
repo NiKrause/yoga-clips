@@ -19,6 +19,15 @@ test.describe('A shared playlist', () => {
 		test.setTimeout(timeout * 5);
 
 		const aliceContext = await browser.newContext();
+		// Fullscreen is the browser's, and whether a headless one grants it,
+		// and when, differs between machines: granted late, it hid "Done" from
+		// the click below and the test waited out its time. Alice's browser
+		// refuses it, as some do; the granted case is e2e/cinema.spec.js's.
+		await aliceContext.addInitScript(() => {
+			Element.prototype.requestFullscreen = function () {
+				return Promise.reject(new TypeError('Fullscreen is refused in this test.'));
+			};
+		});
 		const bobContext = await browser.newContext();
 		const alice = await aliceContext.newPage();
 		const bob = await bobContext.newPage();
@@ -104,10 +113,8 @@ test.describe('A shared playlist', () => {
 				/^https:\/\/player\.vimeo\.com\/video\/76979871/
 			);
 
-			// The press also asked for fullscreen, and where the browser grants
-			// it only the video is on screen. A person leaves it with Escape;
-			// that key is the browser's, so the test leaves the way a script can.
-			await alice.evaluate(() => (document.fullscreenElement ? document.exitFullscreen() : null));
+			// The press also asked for fullscreen, which Alice's browser refuses
+			// (see above): the clip stays on the page, next to "Done".
 			await expect(alice.getByTestId('cinema')).toHaveAttribute('data-fullscreen', 'false');
 
 			// 7. Done marks are local: Alice marks Bob's clip done and, back in
