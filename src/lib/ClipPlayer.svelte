@@ -1,17 +1,11 @@
 <script>
-	// The player. YouTube goes through youtube-nocookie.com, Vimeo through
-	// player.vimeo.com with do-not-track, an Instagram post or reel through its
-	// own /embed/ page; each only once this dialog is open. Everything else
-	// gets a card with the link. No third party's script runs in this page:
-	// each service's code stays inside its own frame.
-	//
-	// The Instagram frame is sandboxed to what it needs to play: its scripts
-	// and its own origin. Without the origin WebKit does not load the video
-	// (measured 2026-11-13); popups and navigating this page stay off, so the
-	// links inside the frame do nothing and the button below is the way out.
+	// The player dialog: a clip from the list, with its done mark and its link.
+	// What is framed, and how, is `ClipFrame`'s; it is rendered only while
+	// this dialog is open, which is after the click on a card.
 	import { _ } from '$lib/i18n/index.js';
 	import { formatDuration, parseClipUrl } from './clips/schema.js';
 	import { buildAppLink } from './clips/share.js';
+	import ClipFrame from './ClipFrame.svelte';
 
 	/** @type {import('./clips/schema.js').Clip | null} */
 	export let clip = null;
@@ -65,8 +59,9 @@
 					{clip.title}
 				</h2>
 				<p class="text-xs text-faint">
-					{#if clip.teacher}{clip.teacher} ·
-					{/if}{formatDuration(clip.durationSec)} · {$_(`source.${clip.source}`)}
+					{[clip.teacher, formatDuration(clip.durationSec), $_(`source.${clip.source}`)]
+						.filter(Boolean)
+						.join(' · ')}
 				</p>
 			</div>
 			<button
@@ -78,18 +73,13 @@
 			>
 		</div>
 
-		{#if embedUrl && clip.source === 'instagram'}
+		{#if parsed && embedUrl && clip.source === 'instagram'}
 			<div class="flex justify-center bg-black" data-testid="player-instagram">
-				<iframe
-					src={embedUrl}
+				<ClipFrame
+					{parsed}
 					title={clip.title}
-					class="h-[min(70vh,46rem)] w-full max-w-[26rem] bg-white"
-					sandbox="allow-scripts allow-same-origin"
-					allow="autoplay; fullscreen; picture-in-picture; encrypted-media"
-					allowfullscreen
-					referrerpolicy="strict-origin-when-cross-origin"
-					data-testid="player-iframe"
-				></iframe>
+					frameClass="h-[min(70vh,46rem)] w-full max-w-[26rem] bg-white"
+				/>
 			</div>
 			<div
 				class="flex flex-wrap items-center justify-between gap-3 border-t border-border px-4 py-3"
@@ -107,17 +97,9 @@
 					{$_('clip.openOn', { values: { source: $_(`source.${clip.source}`) } })}
 				</a>
 			</div>
-		{:else if embedUrl}
+		{:else if parsed && embedUrl}
 			<div class="aspect-video w-full bg-black">
-				<iframe
-					src={embedUrl}
-					title={clip.title}
-					class="h-full w-full"
-					allow="autoplay; fullscreen; picture-in-picture"
-					allowfullscreen
-					referrerpolicy="strict-origin-when-cross-origin"
-					data-testid="player-iframe"
-				></iframe>
+				<ClipFrame {parsed} title={clip.title} />
 			</div>
 		{:else}
 			<div

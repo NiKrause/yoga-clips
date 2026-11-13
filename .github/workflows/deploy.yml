@@ -62,6 +62,7 @@ jobs:
           e2e/consent-identity-choice.spec.js
           e2e/passkey-steps.spec.js
           e2e/instagram-embed.spec.js
+          e2e/cinema.spec.js
           --project=chromium
 
       - name: Summarize E2E

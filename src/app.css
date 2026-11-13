@@ -118,18 +118,20 @@ body {
 	-webkit-font-smoothing: antialiased;
 }
 
-h1,
-h2,
-h3 {
-	color: var(--heading);
-}
-
 /*
-	In the base layer, so that a utility on a link wins. Outside any layer this
-	rule beat every `text-*` class: the label of a filled button that is a link
-	("Open on Instagram") came out in the link colour instead of white.
+	In the base layer, so that a utility on a link or a heading wins. Outside
+	any layer these rules beat every `text-*` class: the label of a filled
+	button that is a link ("Open on Instagram") came out in the link colour
+	instead of white, and a heading on the cinema's dark page in the heading
+	colour of the light theme.
 */
 @layer base {
+	h1,
+	h2,
+	h3 {
+		color: var(--heading);
+	}
+
 	a {
 		color: var(--cyan);
 	}

@@ -7,7 +7,7 @@ import { CLIP_FIELDS, SOURCES } from '../src/lib/clips/schema.js';
 // browser context, opens it, sees Alice's clip, and is refused when he adds
 // one. Alice grants his DID write access; his clip goes through and Alice sees
 // it. Then Alice's export is checked against the schema the yoga-break mod
-// reads, and the deep link opens Bob's clip in the player.
+// reads, and the deep link opens Bob's clip in the cinema page.
 
 const testUrl = '/';
 const timeout = 90_000;
@@ -92,19 +92,28 @@ test.describe('A shared playlist', () => {
 				tags: ['schultern', 'sitzen']
 			});
 
-			// 6. The deep link the mod uses opens the clip in the player.
+			// 6. The deep link the mod uses opens the clip in the cinema page,
+			//    and the press on its start control loads the player.
 			await alice.goto(`/?clip=${bobsExported.id}`);
 			await passConsent(alice, { identity: 'existing' });
-			await expect(alice.getByTestId('player-dialog')).toBeVisible({ timeout });
-			await expect(alice.getByTestId('player-title')).toHaveText(bobClip.title);
+			await expect(alice.getByTestId('cinema-start')).toBeVisible({ timeout });
+			await expect(alice.getByTestId('cinema-title')).toHaveText(bobClip.title);
+			await alice.getByTestId('cinema-start').click();
 			await expect(alice.getByTestId('player-iframe')).toHaveAttribute(
 				'src',
 				/^https:\/\/player\.vimeo\.com\/video\/76979871/
 			);
 
-			// 7. Done marks are local: Alice marks Bob's clip done and the minutes
-			//    show up — for her only.
-			await alice.getByTestId('player-done').click();
+			// The press also asked for fullscreen, and where the browser grants
+			// it only the video is on screen. A person leaves it with Escape;
+			// that key is the browser's, so the test leaves the way a script can.
+			await alice.evaluate(() => (document.fullscreenElement ? document.exitFullscreen() : null));
+			await expect(alice.getByTestId('cinema')).toHaveAttribute('data-fullscreen', 'false');
+
+			// 7. Done marks are local: Alice marks Bob's clip done and, back in
+			//    the playlist, the minutes show up — for her only.
+			await alice.getByTestId('cinema-done').click();
+			await alice.getByTestId('cinema-back').click();
 			await expect(alice.getByTestId('stats-today')).toContainText('8');
 			await expect(bob.getByTestId('stats-today')).toContainText('0');
 		} finally {

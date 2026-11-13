@@ -237,6 +237,19 @@
 		"week": "this week",
 		"minutes": "{minutes} min"
 	},
+	"cinema": {
+		"start": "Start",
+		"startLabel": "Start {title} in fullscreen",
+		"waiting": "Fetching the clip from the playlist…",
+		"fullscreen": "Fullscreen",
+		"back": "To the playlist"
+	},
+	"yogaBreak": {
+		"what": "a mod for Claude Code that suggests a clip from this playlist while a long tool call runs. To set it up:",
+		"install": "Install the mod, in a terminal:",
+		"export": "Export clips.json here and move the file to ~/.yoga/clips.json.",
+		"playlist": "In Claude Code, name this playlist, so that a suggested clip opens here in the cinema page:"
+	},
 	"player": {
 		"close": "Close",
 		"instagramHint": "Instagram decides whether the video plays here, and a private account shows nothing. The button opens the clip on instagram.com.",

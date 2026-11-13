@@ -2,6 +2,7 @@
 	// The bridge to the yoga-break mod: clips.json out, clips.json in.
 	import { _ } from '$lib/i18n/index.js';
 	import { parseImport } from './clips/schema.js';
+	import YogaBreakHint from './YogaBreakHint.svelte';
 	import { clipsCountStore, exportClips, importClips, activePlaylistStore } from './clips/store.js';
 
 	/** @type {(message: string, type?: 'default' | 'success' | 'error' | 'warning') => void} */
@@ -106,4 +107,5 @@
 			data-testid="import-clips-file"
 		/>
 	</div>
+	<YogaBreakHint playlistAddress={$activePlaylistStore.address} />
 </section>

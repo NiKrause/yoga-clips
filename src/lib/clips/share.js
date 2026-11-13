@@ -2,8 +2,10 @@
  * Links into this app.
  *
  * `?db=<address>` opens a playlist — what a friend receives, as text or as a
- * QR code. `?clip=<id>` opens a clip in the player; the `yoga-break` mod
- * sends people here with it. Both may be combined. Nothing else is read from
+ * QR code. `?clip=<id>` opens a clip in the cinema page — the clip alone,
+ * large, on a dark page — and the `yoga-break` mod sends people here with
+ * it. Every clip link gets the cinema: there is no parameter for it. Both
+ * may be combined. Nothing else is read from
  * the URL, and both values are validated before use: the address must be an
  * OrbitDB address, the id must look like one of ours.
  */

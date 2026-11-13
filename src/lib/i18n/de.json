@@ -237,6 +237,19 @@
 		"week": "diese Woche",
 		"minutes": "{minutes} Min."
 	},
+	"cinema": {
+		"start": "Starten",
+		"startLabel": "{title} im Vollbild starten",
+		"waiting": "Der Clip wird aus der Playlist geholt…",
+		"fullscreen": "Vollbild",
+		"back": "Zur Playlist"
+	},
+	"yogaBreak": {
+		"what": "ein Mod für Claude Code, der während eines langen Tool-Aufrufs einen Clip aus dieser Playlist vorschlägt. So richtest du ihn ein:",
+		"install": "Den Mod installieren, im Terminal:",
+		"export": "Hier clips.json exportieren und die Datei nach ~/.yoga/clips.json legen.",
+		"playlist": "In Claude Code diese Playlist nennen, damit ein vorgeschlagener Clip hier in der Kino-Seite aufgeht:"
+	},
 	"player": {
 		"close": "Schließen",
 		"instagramHint": "Instagram entscheidet, ob das Video hier läuft, und ein privates Konto zeigt nichts. Der Knopf öffnet den Clip auf instagram.com.",

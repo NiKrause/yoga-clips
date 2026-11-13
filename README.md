@@ -10,8 +10,18 @@ chapter: passkey identities and per-DID write permissions.
 The playlist's export is the file the
 [**yoga-break**](https://github.com/NiKrause/yoga-break) mod for Claude Code
 reads from `~/.yoga/clips.json`: while a long tool call runs, the mod suggests
-a clip that fits the wait and opens it — in a later version through this app's
-`?clip=<id>` deep link.
+a clip that fits the wait and opens it — with a playlist link set, in this
+app's cinema page through the `?clip=<id>` deep link.
+
+The mod is installed from its own repository:
+
+```bash
+claude plugin install yoga-break --marketplace NiKrause/yoga-break
+```
+
+The app's _clips.json_ panel shows this command and the two steps after it:
+export the playlist to `~/.yoga/clips.json`, and run `/yoga playlist <link>`
+in Claude Code with the playlist's link, which the panel fills in.
 
 ## What it does
 
@@ -31,8 +41,16 @@ a clip that fits the wait and opens it — in a later version through this app's
   in a sandboxed frame — no Instagram script is ever loaded into the app's
   page. Instagram decides whether the video plays in that frame and private
   accounts show nothing, so the _Open on Instagram_ button stays beside it.
-- **Deep link.** `?clip=<id>` opens a clip in the player; `?db=<address>` opens
-  a playlist. Both may be combined.
+- **Deep link.** `?db=<address>` opens a playlist. `?clip=<id>` opens one clip
+  in a cinema page instead of the list: the clip alone on a dark page, as
+  large as the window allows, with a line saying what it is, _Done_, and the
+  way back to the playlist. One press on its start control loads the player,
+  starts the clip and asks for fullscreen — browsers grant sound and
+  fullscreen only on a press, and nothing is requested from YouTube, Vimeo or
+  Instagram before it. Leaving fullscreen, or the clip ending (YouTube and
+  Vimeo say so, Instagram does not), comes back to that page. Both parameters
+  may be combined; every clip link gets the cinema, there is no parameter for
+  it.
 - **clips.json.** _Export_ writes every clip of the open playlist as
   `{ "clips": [ … ] }` in the schema below; _Import_ reads such a file back
   (clips whose id is already there are skipped).

@@ -1,5 +1,6 @@
 <script>
 	import { onMount } from 'svelte';
+	import { replaceState } from '$app/navigation';
 	import { _ } from '$lib/i18n/index.js';
 	import { peerIdStore, initializationStore, ownDidStore, libp2pStore } from '$lib/p2p-stores.js';
 	import PasskeyOnboarding from '$lib/PasskeyOnboarding.svelte';
@@ -44,6 +45,8 @@
 	import ClipFilters from '$lib/ClipFilters.svelte';
 	import ClipGrid from '$lib/ClipGrid.svelte';
 	import ClipPlayer from '$lib/ClipPlayer.svelte';
+	import ClipCinema from '$lib/ClipCinema.svelte';
+	import { parseAppLink } from '$lib/clips/share.js';
 	import TransferPanel from '$lib/TransferPanel.svelte';
 	import PracticeStats from '$lib/PracticeStats.svelte';
 
@@ -103,9 +106,15 @@
 			(filterMinutes <= 0 || clip.durationSec <= filterMinutes * 60)
 	);
 
-	// A `?clip=<id>` link: open the player as soon as the clip is here. It may
-	// take a moment — a guest's copy arrives from the relay — so this waits, and
-	// says so if the clip never turns up.
+	// A `?clip=<id>` link opens the cinema page instead of the list: the one
+	// clip, large, on a dark page. The clip may take a moment — a guest's copy
+	// arrives from the relay — so the cinema waits, and says so if the clip
+	// never turns up. Nothing of the list is drawn meanwhile, so no card asks
+	// a service for a thumbnail behind the cinema's back.
+	let cinema = typeof location !== 'undefined' && parseAppLink(location.search).clip !== null;
+	/** @type {Clip | null} */
+	let cinemaClip = null;
+	let cinemaMissing = false;
 	/** @type {ReturnType<typeof setTimeout> | null} */
 	let deepLinkTimer = null;
 	$: resolveDeepLink($requestedClipStore, $clipsStore, $initializationStore.isInitialized);
@@ -119,7 +128,8 @@
 		if (!wanted) return;
 		const found = clips.find((clip) => clip.id === wanted);
 		if (found) {
-			playing = found;
+			if (cinema) cinemaClip = found;
+			else playing = found;
 			requestedClipStore.set(null);
 			if (deepLinkTimer) clearTimeout(deepLinkTimer);
 			deepLinkTimer = null;
@@ -130,8 +140,26 @@
 			deepLinkTimer = null;
 			if (!$requestedClipStore) return;
 			requestedClipStore.set(null);
-			showToast($_('player.notFound'), 'warning', 8000);
+			if (cinema) cinemaMissing = true;
+			else showToast($_('player.notFound'), 'warning', 8000);
 		}, DEEP_LINK_PATIENCE_MS);
+	}
+
+	/** Back to the playlist, and to an address that would not come back here. */
+	function leaveCinema() {
+		cinema = false;
+		cinemaClip = null;
+		cinemaMissing = false;
+		requestedClipStore.set(null);
+		if (deepLinkTimer) clearTimeout(deepLinkTimer);
+		deepLinkTimer = null;
+		const url = new URL(location.href);
+		url.searchParams.delete('clip');
+		try {
+			replaceState(url, {});
+		} catch {
+			history.replaceState(history.state, '', url);
+		}
 	}
 
 	class IdentityChoiceError extends Error {}
@@ -376,7 +404,18 @@
 	</ConsentModal>
 {/if}
 
-<main class="container mx-auto max-w-5xl p-4 sm:p-6">
+{#if cinema}
+	<ClipCinema
+		clip={cinemaClip}
+		missing={cinemaMissing}
+		failure={showModal ? null : error || $initializationStore.error || null}
+		doneToday={cinemaClip ? doneToday(doneLog, cinemaClip.id) : false}
+		ondone={done}
+		onleave={leaveCinema}
+	/>
+{/if}
+
+<main class="container mx-auto max-w-5xl p-4 sm:p-6" hidden={cinema}>
 	<header class="mb-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
 		<div class="flex flex-1 items-center gap-3">
 			<LeSpaceLogo size={52} />
@@ -426,7 +465,7 @@
 
 	<AddClipForm disabled={!$initializationStore.isInitialized} notify={showToast} />
 
-	{#if $initializationStore.isInitialized && $activePlaylistStore.kind !== 'none'}
+	{#if $initializationStore.isInitialized && $activePlaylistStore.kind !== 'none' && !cinema}
 		<ClipFilters
 			teachers={$teachersStore}
 			tags={$tagsStore}
@@ -459,7 +498,7 @@
 	ondone={done}
 />
 
-{#if SponsorRelayFab}
+{#if SponsorRelayFab && !cinema}
 	<svelte:component
 		this={SponsorRelayFab}
 		manifestUrl="./rootfs-manifest.json"
