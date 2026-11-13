@@ -1,16 +1,28 @@
 <script>
-	// Paste a link, get title and preview filled in where the service offers
-	// them (YouTube, Vimeo — oEmbed, no key), type the rest. The duration is
-	// always typed: oEmbed does not carry it.
+	// Paste a link, get title, preview and length filled in where the service
+	// offers them, type the rest. Title and preview come from oEmbed (YouTube,
+	// Vimeo — no key). The length comes from oEmbed at Vimeo and from the
+	// player at YouTube, whose oEmbed has none. Nothing here waits for a
+	// service: a clip can be added while a lookup is still out.
 	import { _ } from '$lib/i18n/index.js';
-	import { parseClipUrl, parseDurationInput } from './clips/schema.js';
+	import {
+		MAX_DURATION_SEC,
+		MIN_DURATION_SEC,
+		formatDuration,
+		parseClipUrl,
+		parseDurationInput
+	} from './clips/schema.js';
 	import { fetchOEmbed } from './clips/oembed.js';
+	import { readYouTubeDuration } from './clips/youtube-duration.js';
 	import { rememberThumbnail } from './clips/thumbnails.js';
 	import { addClip, teachersStore, activePlaylistStore } from './clips/store.js';
 
 	export let disabled = false;
 	/** @type {(message: string, type?: 'default' | 'success' | 'error' | 'warning') => void} */
 	export let notify = () => {};
+	/** The two lookups, replaceable so a test needs no YouTube and no Vimeo. */
+	export let lookupOEmbed = fetchOEmbed;
+	export let lookupYouTubeDuration = readYouTubeDuration;
 
 	let url = '';
 	let title = '';
@@ -26,6 +38,22 @@
 	/** @type {AbortController | null} */
 	let lookupController = null;
 	let lookedUpFor = '';
+	/**
+	 * What a lookup wrote into the duration field. While the field still holds
+	 * exactly this, nobody typed it — so the next link may replace it. Without
+	 * that, a second link would be saved with the first one's length.
+	 */
+	let filledDuration = '';
+	/**
+	 * What the hint under the field has to be true about: nothing looked up
+	 * (`idle`), the length taken from the service (`filled`), a service that
+	 * should have told and did not (`missing`), or a length this app has no
+	 * clip for (`outOfRange`).
+	 *
+	 * @type {'idle' | 'filled' | 'missing' | 'outOfRange'}
+	 */
+	let durationFrom = 'idle';
+	let reportedLength = '';
 
 	$: parsed = parseClipUrl(url);
 	$: source = parsed?.source ?? null;
@@ -33,6 +61,35 @@
 	$: if (!parsed) {
 		lookedUpFor = '';
 		thumbnailUrl = null;
+		lookupController?.abort();
+		forgetFilledDuration();
+	}
+	// A filled length somebody then changed is theirs, and the hint stops
+	// naming the service as its source.
+	$: if (durationFrom === 'filled' && duration !== filledDuration) durationFrom = 'idle';
+
+	function forgetFilledDuration() {
+		if (filledDuration && duration === filledDuration) duration = '';
+		filledDuration = '';
+		durationFrom = 'idle';
+	}
+
+	/** @param {number | null} seconds what the service reported, if anything */
+	function offerDuration(seconds) {
+		if (seconds === null) {
+			durationFrom = 'missing';
+			return;
+		}
+		if (seconds < MIN_DURATION_SEC || seconds > MAX_DURATION_SEC) {
+			reportedLength = formatDuration(seconds);
+			durationFrom = 'outOfRange';
+			return;
+		}
+		// Never overwrite what the person typed — only fill what is empty.
+		if (duration.trim()) return;
+		duration = formatDuration(seconds);
+		filledDuration = duration;
+		durationFrom = 'filled';
 	}
 
 	/** @param {string} canonical */
@@ -40,19 +97,37 @@
 		lookedUpFor = canonical;
 		lookupController?.abort();
 		thumbnailUrl = parsed?.thumbnailUrl ?? null;
+		forgetFilledDuration();
 		if (!parsed || (parsed.source !== 'youtube' && parsed.source !== 'vimeo')) return;
+		const { source: service, videoId } = parsed;
 		const controller = new AbortController();
+		const { signal } = controller;
 		lookupController = controller;
 		looking = true;
-		try {
-			const info = await fetchOEmbed(canonical, { signal: controller.signal });
-			if (controller.signal.aborted || lookedUpFor !== canonical) return;
-			if (info) {
-				// Never overwrite what the person typed — only fill what is empty.
+		const stillWanted = () => !signal.aborted && lookedUpFor === canonical;
+
+		// Two questions, each answered when it is: the title does not wait the
+		// seconds YouTube's player takes to load.
+		const details = Promise.resolve()
+			.then(() => lookupOEmbed(canonical, { signal }))
+			.catch(() => null)
+			.then((info) => {
+				if (!info || !stillWanted()) return null;
 				if (!title.trim() && info.title) title = info.title;
 				if (!teacher.trim() && info.authorName) teacher = info.authorName;
 				if (info.thumbnailUrl) thumbnailUrl = info.thumbnailUrl;
-			}
+				return info.durationSec ?? null;
+			});
+		const fromPlayer =
+			service === 'youtube' && videoId
+				? Promise.resolve()
+						.then(() => lookupYouTubeDuration(videoId, { signal }))
+						.catch(() => null)
+				: Promise.resolve(null);
+
+		try {
+			const [fromOEmbed, playerSeconds] = await Promise.all([details, fromPlayer]);
+			if (stillWanted()) offerDuration(fromOEmbed ?? playerSeconds);
 		} finally {
 			if (lookupController === controller) {
 				looking = false;
@@ -88,6 +163,8 @@
 				url = '';
 				title = '';
 				duration = '';
+				filledDuration = '';
+				durationFrom = 'idle';
 				tags = '';
 				thumbnailUrl = null;
 				notify($_('clip.added'), 'success');
@@ -195,7 +272,23 @@
 					data-testid="clip-duration"
 					class="mt-1 w-full rounded-md border border-border px-3 py-2 text-sm"
 				/>
-				<span class="mt-1 block text-[10px]">{$_('clip.durationHint')}</span>
+				<span
+					class="mt-1 block text-[10px]"
+					data-testid="clip-duration-hint"
+					data-duration-from={durationFrom}
+				>
+					{#if durationFrom === 'filled' && source}
+						{$_('clip.durationHintFilled', { values: { source: $_(`source.${source}`) } })}
+					{:else if durationFrom === 'missing' && source}
+						{$_('clip.durationHintMissing', { values: { source: $_(`source.${source}`) } })}
+					{:else if durationFrom === 'outOfRange' && source}
+						{$_('clip.durationHintOutOfRange', {
+							values: { source: $_(`source.${source}`), length: reportedLength }
+						})}
+					{:else}
+						{$_('clip.durationHint')}
+					{/if}
+				</span>
 			</label>
 			<label class="block text-xs text-faint">
 				{$_('clip.tagsLabel')}

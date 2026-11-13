@@ -18,11 +18,15 @@ a clip that fits the wait and opens it — in a later version through this app's
 - **Add a clip by link.** YouTube (incl. `youtu.be` and Shorts), Instagram
   (Reels and posts), Vimeo, or any other web link. The source is detected from
   the URL; for YouTube and Vimeo the title and thumbnail are prefilled through
-  the services' public oEmbed endpoints (no API key). The duration is typed —
-  oEmbed does not carry it. Teachers autocomplete from the playlist.
+  the services' public oEmbed endpoints (no API key). The duration is
+  prefilled too: Vimeo's oEmbed answer carries it, and for YouTube, whose
+  answer does not, the app reads it from YouTube's player, loaded out of sight
+  and without playing. Whatever is prefilled can be overwritten, and a service
+  that does not answer leaves the field to be typed, as for Instagram and any
+  other link. Teachers autocomplete from the playlist.
 - **Find one.** Grid of cards, filtered by teacher, tag, and "I have N minutes".
 - **Play it.** YouTube and Vimeo play inline, from `youtube-nocookie.com` and
-  `player.vimeo.com`, loaded only after the click. Instagram is a card with an
+  `player.vimeo.com`; the player you watch in loads only after the click. Instagram is a card with an
   _Open_ button — no Instagram script is ever loaded.
 - **Deep link.** `?clip=<id>` opens a clip in the player; `?db=<address>` opens
   a playlist. Both may be combined.
@@ -108,7 +112,12 @@ browser ──libp2p (WebSocket/WebRTC)──▶ orbitdb-relay ◀── another
   discovery and replication, WebRTC between browsers where possible. Nothing
   dials before the consent screen is accepted.
 - **Third parties.** Pasting a YouTube/Vimeo link asks `youtube.com` /
-  `vimeo.com` for oEmbed. Cards load thumbnails from `i.ytimg.com` /
+  `vimeo.com` for oEmbed. Pasting a YouTube link also loads YouTube's player
+  from `youtube-nocookie.com` in a hidden frame, for the video's length only:
+  nothing plays, the frame goes away once the player has answered or after
+  eight seconds, and the player fetches its own parts from other Google hosts
+  (`google.com`, `gstatic.com`, `i.ytimg.com`, `googleapis.com` when measured
+  on 2026-11-13). Cards load thumbnails from `i.ytimg.com` /
   `vimeocdn.com` (Vimeo's, once per clip, cached in localStorage). Playing
   loads the embed. The consent screen says all of this.
 
