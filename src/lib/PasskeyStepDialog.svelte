@@ -49,7 +49,7 @@
 			{#if step.canCancel}
 				<button
 					type="button"
-					class="min-h-11 rounded-md border border-border px-3 text-sm text-text hover:bg-surface-2 hover:text-heading"
+					class="btn btn-ghost"
 					on:click={cancel}
 					data-testid="passkey-step-cancel"
 				>
@@ -59,7 +59,7 @@
 			<!-- svelte-ignore a11y_autofocus -->
 			<button
 				type="button"
-				class="min-h-11 rounded-md bg-coral-700 px-4 text-sm font-medium text-white hover:bg-coral-800"
+				class="btn btn-primary"
 				on:click={() => step?.resolve()}
 				autofocus
 				data-testid="passkey-step-continue"

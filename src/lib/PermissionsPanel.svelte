@@ -98,10 +98,7 @@
 </script>
 
 {#if currentDb?.access?.grant}
-	<details
-		class="mt-4 rounded-lg border border-border bg-surface shadow-sm"
-		data-testid="permissions-panel"
-	>
+	<details class="card mt-4" data-testid="permissions-panel">
 		<summary class="cursor-pointer px-4 py-3 text-sm font-semibold text-heading">
 			{$_('permissions.heading')}
 			<span class="ml-1 text-xs font-normal text-faint">({writeDids.length})</span>
@@ -109,16 +106,16 @@
 		<div class="border-t border-border px-4 py-3">
 			<p class="text-xs text-faint">{$_('permissions.hint')}</p>
 
-			<ul class="mt-3 space-y-1">
+			<ul class="mt-3">
 				{#each writeDids as did (did)}
 					<li
-						class="flex items-center justify-between gap-2 text-xs"
+						class="list-row justify-between !gap-2 !py-1.5 text-xs"
 						data-testid="permission-entry"
 						data-did={did}
 					>
 						<code class="truncate rounded bg-surface-2 px-1" title={did}>
 							{shortDid(did)}
-							{#if did === $ownDidStore}<span class="text-identity-600">
+							{#if did === $ownDidStore}<span class="text-identity">
 									{$_('permissions.you')}</span
 								>{/if}
 						</code>
@@ -149,7 +146,7 @@
 					on:click={grant}
 					disabled={busy || !newDid.trim()}
 					data-testid="permission-add"
-					class="rounded-md bg-cyan-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-cyan-700 disabled:opacity-50"
+					class="btn btn-primary btn-sm"
 				>
 					{$_('permissions.add')}
 				</button>

@@ -46,10 +46,7 @@
 </script>
 
 {#if $activePlaylistStore.address}
-	<details
-		class="mt-4 rounded-lg border border-border bg-surface shadow-sm"
-		data-testid="share-panel"
-	>
+	<details class="card mt-4" data-testid="share-panel">
 		<summary class="cursor-pointer px-4 py-3 text-sm">
 			<span class="font-semibold text-heading" data-testid="active-playlist-kind"
 				>{$activePlaylistStore.kind === 'owner'
@@ -76,7 +73,7 @@
 							type="button"
 							on:click={() => copy('link', link)}
 							data-testid="share-copy-link"
-							class="shrink-0 rounded-md border border-border px-2 py-1 text-xs hover:bg-surface-2"
+							class="btn btn-ghost btn-sm shrink-0"
 						>
 							{copied === 'link' ? $_('share.copied') : $_('share.copy')}
 						</button>
@@ -93,7 +90,7 @@
 							type="button"
 							on:click={() => copy('address', $activePlaylistStore.address)}
 							data-testid="share-copy-address"
-							class="shrink-0 rounded-md border border-border px-2 py-1 text-xs hover:bg-surface-2"
+							class="btn btn-ghost btn-sm shrink-0"
 						>
 							{copied === 'address' ? $_('share.copied') : $_('share.copy')}
 						</button>

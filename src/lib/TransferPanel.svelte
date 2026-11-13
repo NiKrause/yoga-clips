@@ -71,10 +71,7 @@
 	$: canWrite = $activePlaylistStore.kind !== 'none';
 </script>
 
-<section
-	class="mt-4 rounded-lg border border-border bg-surface p-4 shadow-sm"
-	data-testid="transfer-panel"
->
+<section class="card mt-4 p-4" data-testid="transfer-panel">
 	<div class="flex flex-wrap items-center gap-3">
 		<div class="min-w-0 flex-1">
 			<h2 class="text-lg font-semibold text-heading">{$_('transfer.heading')}</h2>
@@ -85,7 +82,7 @@
 			on:click={download}
 			disabled={!canWrite || $clipsCountStore === 0}
 			data-testid="export-clips"
-			class="rounded-md bg-cyan-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-cyan-700 disabled:opacity-50"
+			class="btn btn-ghost btn-sm"
 		>
 			{$_('transfer.export')}
 		</button>
@@ -94,7 +91,7 @@
 			on:click={() => fileInput?.click()}
 			disabled={!canWrite || importing}
 			data-testid="import-clips"
-			class="rounded-md border border-border px-3 py-1.5 text-xs font-medium hover:bg-surface-2 disabled:opacity-50"
+			class="btn btn-ghost btn-sm"
 		>
 			{$_('transfer.import')}
 		</button>

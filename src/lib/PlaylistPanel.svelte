@@ -97,20 +97,17 @@
 	}
 </script>
 
-<section
-	class="mt-4 rounded-lg border border-border bg-surface p-4 shadow-sm"
-	data-testid="playlist-panel"
->
+<section class="card mt-4 p-4" data-testid="playlist-panel">
 	<h2 class="text-lg font-semibold text-heading">{$_('playlist.heading')}</h2>
 
 	{#if $listRegistryReadyStore && $listRegistryStore.length}
 		<div class="mt-3" data-testid="playlist-switcher" data-registry-name={$listRegistryNameStore}>
 			<h3 class="text-sm font-medium text-heading">{$_('playlist.yoursHeading')}</h3>
 			<p class="mt-1 text-xs text-faint">{$_('playlist.yoursHint')}</p>
-			<ul class="mt-2 flex flex-col gap-1" data-testid="playlist-switcher-items">
+			<ul class="mt-2" data-testid="playlist-switcher-items">
 				{#each $listRegistryStore as entry (entry.address)}
 					{@const active = entry.address === $playlistAddressStore}
-					<li class="flex items-center gap-2">
+					<li class="list-row !gap-2 !py-1.5">
 						<button
 							type="button"
 							on:click={() => openKnown(entry.address)}
@@ -128,7 +125,7 @@
 									? $_('playlist.roleOwner')
 									: $_('playlist.roleGuest')}</span
 							>
-							{#if active}<span class="ml-1 text-identity-600">· {$_('playlist.active')}</span>{/if}
+							{#if active}<span class="ml-1 text-identity">· {$_('playlist.active')}</span>{/if}
 							<code class="mt-0.5 block truncate font-mono text-[10px] text-faint"
 								>{entry.address}</code
 							>
@@ -139,7 +136,7 @@
 							title={$_('playlist.forgetTitle')}
 							data-testid="playlist-switcher-forget"
 							data-address={entry.address}
-							class="shrink-0 rounded-md border border-border px-2 py-1 text-xs hover:bg-surface-2"
+							class="btn btn-ghost btn-sm shrink-0"
 						>
 							{$_('playlist.forget')}
 						</button>
@@ -167,7 +164,7 @@
 					on:click={create}
 					disabled={creating}
 					data-testid="new-playlist-create"
-					class="rounded-md bg-identity-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-identity-800 disabled:opacity-50"
+					class="btn btn-primary btn-sm"
 				>
 					{creating ? $_('playlist.creating') : $_('playlist.create')}
 				</button>
@@ -191,7 +188,7 @@
 					on:click={openTyped}
 					disabled={opening || !address.trim()}
 					data-testid="open-playlist-button"
-					class="rounded-md bg-cyan-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-cyan-700 disabled:opacity-50"
+					class="btn btn-ghost btn-sm"
 				>
 					{opening ? $_('playlist.opening') : $_('playlist.openButton')}
 				</button>

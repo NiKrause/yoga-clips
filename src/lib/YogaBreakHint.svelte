@@ -54,7 +54,7 @@
 				<button
 					type="button"
 					on:click={() => copy('install', INSTALL)}
-					class="shrink-0 rounded-md border border-border px-2 py-1 hover:bg-surface-2"
+					class="btn btn-ghost btn-sm shrink-0"
 					data-testid="yoga-break-copy-install"
 				>
 					{copied === 'install' ? $_('share.copied') : $_('share.copy')}
@@ -73,7 +73,7 @@
 					<button
 						type="button"
 						on:click={() => copy('playlist', playlistCommand)}
-						class="shrink-0 rounded-md border border-border px-2 py-1 hover:bg-surface-2"
+						class="btn btn-ghost btn-sm shrink-0"
 						data-testid="yoga-break-copy-playlist"
 					>
 						{copied === 'playlist' ? $_('share.copied') : $_('share.copy')}

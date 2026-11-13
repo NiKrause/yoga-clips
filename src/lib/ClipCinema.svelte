@@ -173,7 +173,7 @@
 				data-testid="cinema-start"
 			>
 				<span
-					class="flex h-28 w-28 items-center justify-center rounded-full bg-coral-700 pl-2 text-5xl transition-transform group-hover:scale-105 group-hover:bg-coral-800 sm:h-36 sm:w-36 sm:text-6xl"
+					class="flex h-28 w-28 items-center justify-center rounded-full bg-accent pl-2 text-5xl text-accent-ink transition-transform group-hover:scale-105 group-hover:brightness-95 sm:h-36 sm:w-36 sm:text-6xl"
 					aria-hidden="true">▶</span
 				>
 				<span class="text-lg font-medium">{$_('cinema.start')}</span>
@@ -185,7 +185,7 @@
 					href={clip.url}
 					target="_blank"
 					rel="noopener noreferrer"
-					class="rounded-md bg-coral-700 px-6 py-3 font-medium text-white hover:bg-coral-800"
+					class="btn btn-primary px-6"
 					data-testid="cinema-open-external"
 				>
 					{$_('clip.openOn', { values: { source: sourceName } })}
@@ -243,7 +243,7 @@
 					type="button"
 					bind:this={doneControl}
 					on:click={() => clip && ondone(clip)}
-					class="rounded-md bg-identity-600 px-3 py-1.5 text-sm font-medium text-white hover:bg-identity-800"
+					class="btn btn-primary btn-sm"
 					data-testid="cinema-done"
 				>
 					✓ {$_('clip.done')}

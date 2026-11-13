@@ -17,44 +17,62 @@
 	font-display: swap;
 }
 
-/* Light mode (default) — Le-Space light palette */
+/*
+	Le Space Belege's tokens (Brand & Style Guide v1; the source of truth is
+	sites/belege/src/styles.css in Le-Space/landing, which yoga.le-space.de
+	uses too): warm paper with amber by day, deep night with lime at night.
+	The app's own token names stay, so every component follows.
+
+	Contrast (WCAG AA, body text): ink on paper 14.2:1, snow on night 15.8:1,
+	slate on paper 6.1:1, muted on night 7.2:1. Amber and lime are fills with
+	ink/night text on them (amber+ink 9.6:1, lime+night 14.9:1), never text on
+	the page background: text that must look amber uses --accent-text.
+*/
 :root {
-	--bg: #edf1f8; /* Starlight */
-	--surface: #ffffff;
-	--surface-2: #f2f5fb;
-	--border: #d4dcea;
-	--heading: #141b2e; /* Ink */
-	--text: #41506b;
-	--faint: #6b7891;
-	--coral: #e8503f; /* light Coral */
+	--bg: #faf6ee; /* paper */
+	--surface: #ffffff; /* cards, inputs */
+	--surface-2: #f4efe3; /* a step into the paper: fields, hovers, tags */
+	--border: #e3dccb; /* line */
+	--heading: #0f1b2d; /* ink */
+	--text: #0f1b2d; /* ink */
+	--faint: #51606f; /* slate */
+	--accent: #ffb020; /* amber: the one call to action, the signet's arc */
+	--accent-ink: #0f1b2d; /* text on the accent */
+	--accent-text: #8a5a00; /* amber-ish text on paper, 5.5:1 */
+	--focus: #0f1b2d;
 	/* The signet (brand/): amber and ink by day */
 	--mark-accent: #ffb020;
 	--mark-ink: #0f1b2d;
-	--cyan: #0e86c4; /* light Cyan */
-	--identity: #1fa971;
-	--data: #c7891a;
-	--infra: #7c5cff;
-	--danger: #dc2626;
+	--coral: #8a5a00; /* the old accent name: amber text */
+	--cyan: #5b3fd6; /* links: Belege's violet text, 6.2:1 on paper */
+	--identity: #1d7a4f; /* done, online */
+	--data: #8a5a00;
+	--infra: #5b3fd6; /* violet */
+	--danger: #b42318;
 }
 
-/* Dark mode — Le-Space "Space" palette */
+/* At night */
 .dark {
-	--bg: #0b0e15; /* Deep Space */
-	--surface: #141926; /* Nebula */
-	--surface-2: #1b2233;
-	--border: #232b3d; /* Horizon */
-	--heading: #edf1f8; /* Starlight */
-	--text: #a8b3c7; /* Stardust */
-	--faint: #5c677a;
-	--coral: #ff6b5b; /* Signal Coral */
+	--bg: #0b0e15; /* night */
+	--surface: #161b26; /* panel */
+	--surface-2: #1d2331;
+	--border: #2a3140;
+	--heading: #f4f6fb; /* snow */
+	--text: #f4f6fb; /* snow */
+	--faint: #8a94a6; /* muted */
+	--accent: #c6f24e; /* lime */
+	--accent-ink: #0b0e15;
+	--accent-text: #c6f24e; /* lime on night: 14.9:1 */
+	--focus: #c6f24e;
 	/* … lime and snow at night */
 	--mark-accent: #c6f24e;
 	--mark-ink: #f4f6fb;
-	--cyan: #58c7f3; /* Sync Cyan */
-	--identity: #3edc97;
+	--coral: #c6f24e;
+	--cyan: #a893ff; /* violet text, 6.8:1 on the panel */
+	--identity: #7fdc9f;
 	--data: #ffc24b;
-	--infra: #a78bfa;
-	--danger: #ff6b6b;
+	--infra: #a893ff;
+	--danger: #ff8a80;
 }
 
 @theme inline {
@@ -71,6 +89,9 @@
 	--color-data: var(--data);
 	--color-infra: var(--infra);
 	--color-danger: var(--danger);
+	--color-accent: var(--accent);
+	--color-accent-ink: var(--accent-ink);
+	--color-accent-text: var(--accent-text);
 
 	/* Accent scales (theme-static brand hues — read on both light & dark).
 	   Used for buttons, focus rings and status chips. */
@@ -114,7 +135,7 @@
 	/* Fixed dark "code" panel (peer ids, multiaddrs) — dark in both themes */
 	--color-code: #0f1420;
 
-	--font-sans: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+	--font-sans: 'Sora', system-ui, -apple-system, 'Segoe UI', sans-serif;
 	--font-mono: 'JetBrains Mono', 'Fira Code', ui-monospace, monospace;
 }
 
@@ -162,6 +183,164 @@ select {
 input::placeholder,
 textarea::placeholder {
 	color: var(--faint);
+}
+
+:focus-visible {
+	outline: 2px solid var(--focus);
+	outline-offset: 2px;
+}
+
+/*
+	The base components the relaunch builds from (NiKrause/yoga-clips#1):
+	button (primary, ghost), card, list row, chip, sheet, bottom bar. In the
+	components layer, so a utility on the element still wins.
+*/
+@layer components {
+	/* One call to action per view is the accent; everything else is ghost. */
+	.btn {
+		display: inline-flex;
+		align-items: center;
+		justify-content: center;
+		gap: 0.5rem;
+		min-height: 2.75rem; /* 44 px: a finger's target */
+		padding: 0.625rem 1.125rem;
+		border: 1px solid transparent;
+		border-radius: 12px;
+		font-size: 0.9375rem;
+		font-weight: 600;
+		line-height: 1.25rem;
+		text-decoration: none;
+		transition:
+			background-color 120ms ease,
+			border-color 120ms ease,
+			filter 120ms ease;
+	}
+	.btn:disabled,
+	.btn[aria-disabled='true'] {
+		cursor: not-allowed;
+		opacity: 0.5;
+	}
+	.btn-sm {
+		min-height: 2.25rem;
+		padding: 0.375rem 0.75rem;
+		border-radius: 10px;
+		font-size: 0.8125rem;
+	}
+	.btn-primary {
+		background: var(--accent);
+		color: var(--accent-ink);
+	}
+	.btn-primary:not(:disabled):hover {
+		filter: brightness(0.94);
+	}
+	.btn-ghost {
+		background: transparent;
+		border-color: var(--border);
+		color: var(--heading);
+	}
+	.btn-ghost:not(:disabled):hover {
+		background: var(--surface-2);
+	}
+
+	.card {
+		background: var(--surface);
+		border: 1px solid var(--border);
+		border-radius: 16px;
+	}
+
+	/* A row of a list: rows are separated by a line, not boxed one by one. */
+	.list-row {
+		display: flex;
+		align-items: center;
+		gap: 0.75rem;
+		padding: 0.625rem 0;
+		border-top: 1px solid var(--border);
+	}
+	.list-row:first-child {
+		border-top: 0;
+	}
+
+	.chip {
+		display: inline-flex;
+		align-items: center;
+		gap: 0.25rem;
+		border: 1px solid var(--border);
+		border-radius: 999px;
+		background: var(--surface);
+		padding: 0.25rem 0.625rem;
+		font-size: 0.75rem;
+		line-height: 1rem;
+		color: var(--text);
+	}
+	.chip-on {
+		background: var(--heading);
+		border-color: var(--heading);
+		color: var(--bg);
+	}
+
+	/*
+		A dialog that rises from the bottom on a phone and sits in the middle
+		from 640 px. For a native <dialog> opened with showModal(); its backdrop
+		comes with the element (`backdrop:bg-black/70`), which a ::backdrop rule
+		in this layer does not reach.
+	*/
+	.sheet {
+		margin: auto 0 0;
+		width: 100%;
+		max-width: 100%;
+		max-height: 92dvh;
+		overflow: auto;
+		border: 1px solid var(--border);
+		border-radius: 20px 20px 0 0;
+		background: var(--surface);
+		color: var(--text);
+		padding: 0;
+	}
+	@media (min-width: 640px) {
+		.sheet {
+			margin: auto;
+			width: min(96vw, 56rem);
+			border-radius: 20px;
+		}
+	}
+
+	/* The app's sections at the foot of a phone (BottomBar.svelte). */
+	.bottom-bar {
+		position: fixed;
+		inset: auto 0 0;
+		z-index: 30;
+		display: flex;
+		border-top: 1px solid var(--border);
+		background: var(--surface);
+		padding: 0.5rem 0.5rem calc(0.75rem + env(safe-area-inset-bottom));
+	}
+	.bottom-bar-item {
+		flex: 1;
+		display: flex;
+		flex-direction: column;
+		align-items: center;
+		gap: 0.25rem;
+		min-height: 2.75rem;
+		font-size: 0.6875rem;
+		color: var(--faint);
+		text-decoration: none;
+	}
+	.bottom-bar-item[aria-current='page'] {
+		color: var(--heading);
+		font-weight: 600;
+	}
+	.bottom-bar-icon {
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		width: 2rem;
+		height: 1.5rem;
+		border-radius: 8px;
+	}
+	.bottom-bar-item[aria-current='page'] .bottom-bar-icon {
+		background: var(--accent);
+		color: var(--accent-ink);
+	}
 }
 
 /* Custom badge styles */
