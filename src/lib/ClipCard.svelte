@@ -1,6 +1,8 @@
 <script>
-	// One clip. Nothing from the clip's services loads before the card is on
-	// screen (the thumbnail, lazily) and nothing plays before a click.
+	// One clip as a row of the playlist's list (direction B): a small picture,
+	// title and teacher, its length; the per-clip actions quieter below.
+	// Nothing from the clip's service loads before the row is on screen (the
+	// thumbnail, lazily) and nothing plays before a press.
 	import { onMount } from 'svelte';
 	import { _ } from '$lib/i18n/index.js';
 	import { formatDuration, parseClipUrl } from './clips/schema.js';
@@ -11,6 +13,8 @@
 	export let doneToday = false;
 	export let doneCount = 0;
 	export let canRemove = false;
+	/** The clip playing in the player above. */
+	export let current = false;
 	/**
 	 * Who added the clip, said only on a shared playlist (ClipGrid decides):
 	 * 'you', 'other', or null for nothing.
@@ -39,20 +43,22 @@
 	$: embeddable = Boolean(parseClipUrl(clip.url)?.embedUrl);
 </script>
 
-<article
-	class="card flex flex-col overflow-hidden"
+<li
+	class="list-row !items-start {current ? 'rounded-xl !border-transparent bg-surface px-2' : ''}"
 	data-testid="clip-card"
 	data-clip-id={clip.id}
 	data-source={clip.source}
+	data-current={current}
+	aria-current={current ? 'true' : undefined}
 >
 	<button
 		type="button"
 		on:click={() => onplay(clip)}
-		class="group relative block aspect-video w-full bg-surface-2 text-left"
+		class="group relative h-12 w-20 shrink-0 overflow-hidden rounded-lg bg-tile-2"
 		data-testid="clip-play"
 		aria-label={embeddable
-			? $_('clip.play')
-			: $_('clip.openOn', { values: { source: $_(`source.${clip.source}`) } })}
+			? `${$_('clip.play')}: ${clip.title}`
+			: `${$_('clip.openOn', { values: { source: $_(`source.${clip.source}`) } })}: ${clip.title}`}
 	>
 		{#if thumbnail && !thumbnailFailed}
 			<img
@@ -64,82 +70,71 @@
 				on:error={() => (thumbnailFailed = true)}
 			/>
 		{:else}
-			<div class="flex h-full w-full flex-col items-center justify-center gap-1 text-faint">
-				<span class="text-3xl" aria-hidden="true">
-					{#if clip.source === 'instagram'}◎{:else if clip.source === 'vimeo'}▶{:else if clip.source === 'youtube'}▶{:else}↗{/if}
-				</span>
-				<span class="text-xs">{$_(`source.${clip.source}`)}</span>
-			</div>
+			<span class="flex h-full w-full items-center justify-center text-faint" aria-hidden="true">
+				{#if clip.source === 'instagram'}◎{:else if embeddable}▶{:else}↗{/if}
+			</span>
 		{/if}
 		<span
-			class="absolute right-2 bottom-2 rounded bg-code/80 px-1.5 py-0.5 font-mono text-xs text-white"
-			data-testid="clip-duration-badge">{formatDuration(clip.durationSec)}</span
+			class="absolute inset-0 flex items-center justify-center bg-black/0 text-lg text-white opacity-0 transition group-hover:bg-black/30 group-hover:opacity-100 group-focus-visible:opacity-100"
+			aria-hidden="true">{embeddable ? '▶' : '↗'}</span
 		>
-		<span
-			class="absolute inset-0 flex items-center justify-center bg-code/0 text-white opacity-0 transition group-hover:bg-code/40 group-hover:opacity-100 group-focus-visible:opacity-100"
-		>
-			<span class="rounded-full bg-accent px-4 py-2 text-sm font-semibold text-accent-ink"
-				>{embeddable
-					? $_('clip.play')
-					: $_('clip.openOn', { values: { source: $_(`source.${clip.source}`) } })}</span
-			>
-		</span>
 	</button>
 
-	<div class="flex flex-1 flex-col gap-1 p-3">
-		<h3 class="font-semibold text-heading" data-testid="clip-card-title">{clip.title}</h3>
-		{#if clip.teacher}
-			<p class="text-sm text-text" data-testid="clip-card-teacher">{clip.teacher}</p>
-		{/if}
+	<div class="min-w-0 flex-1">
+		<button
+			type="button"
+			on:click={() => onplay(clip)}
+			class="block w-full text-left"
+			tabindex="-1"
+			aria-hidden="true"
+		>
+			<span class="block font-semibold text-heading" data-testid="clip-card-title"
+				>{clip.title}</span
+			>
+			<span class="block text-xs text-faint">
+				{#if current}<span class="font-medium text-accent-text">{$_('clip.playing')}</span
+					>{:else if clip.teacher}<span data-testid="clip-card-teacher">{clip.teacher}</span>{/if}
+			</span>
+		</button>
 		{#if clip.tags.length}
-			<ul class="flex flex-wrap gap-1" data-testid="clip-card-tags">
+			<ul class="mt-1 flex flex-wrap gap-1" data-testid="clip-card-tags">
 				{#each clip.tags as tag (tag)}
-					<li class="chip">{tag}</li>
+					<li class="chip !px-2 !py-0 !text-[11px]">{tag}</li>
 				{/each}
 			</ul>
 		{/if}
-		<p class="mt-auto pt-1 text-[11px] text-faint">
+		<div class="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-[11px] text-faint">
 			{#if author}
 				<span data-testid="clip-card-author" data-did={clip.addedBy}
 					>{author === 'you' ? $_('clip.addedByYou') : $_('clip.addedByOther')}</span
 				>
-				·
 			{/if}
 			<span data-testid="clip-done-count"
 				>{$_('clip.doneCount', { values: { count: doneCount } })}</span
 			>
-		</p>
-		<div class="mt-1 flex flex-wrap items-center gap-2">
 			{#if doneToday}
-				<span
-					class="rounded-md bg-identity-500/15 px-2 py-1 text-xs font-medium text-identity"
-					data-testid="clip-done-today"
+				<span class="font-medium text-identity" data-testid="clip-done-today"
+					>✓ {$_('clip.doneToday')}</span
 				>
-					✓ {$_('clip.doneToday')}
-				</span>
 				<button
 					type="button"
 					on:click={() => onundo(clip)}
-					class="text-xs text-faint underline hover:text-heading"
-					data-testid="clip-undo"
+					class="underline hover:text-heading"
+					data-testid="clip-undo">{$_('clip.undoDone')}</button
 				>
-					{$_('clip.undoDone')}
-				</button>
 			{:else}
 				<button
 					type="button"
 					on:click={() => ondone(clip)}
-					class="rounded-md border border-identity-500/60 px-2 py-1 text-xs font-medium text-identity hover:bg-identity-500/10"
-					data-testid="clip-done"
+					class="font-medium text-identity hover:underline"
+					data-testid="clip-done">✓ {$_('clip.done')}</button
 				>
-					✓ {$_('clip.done')}
-				</button>
 			{/if}
 			<a
 				href={clip.url}
 				target="_blank"
 				rel="noopener noreferrer"
-				class="text-xs text-cyan underline"
+				class="text-cyan underline"
 				data-testid="clip-open-link"
 				>{$_('clip.openOn', { values: { source: $_(`source.${clip.source}`) } })}</a
 			>
@@ -147,12 +142,14 @@
 				<button
 					type="button"
 					on:click={() => onremove(clip)}
-					class="ml-auto text-xs text-danger hover:underline"
-					data-testid="clip-remove"
+					class="text-danger hover:underline"
+					data-testid="clip-remove">{$_('clip.remove')}</button
 				>
-					{$_('clip.remove')}
-				</button>
 			{/if}
 		</div>
 	</div>
-</article>
+
+	<span class="shrink-0 pt-0.5 font-mono text-xs text-faint" data-testid="clip-duration-badge"
+		>{formatDuration(clip.durationSec)}</span
+	>
+</li>

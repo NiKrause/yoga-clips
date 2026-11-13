@@ -15,7 +15,8 @@
 		tagsStore,
 		activePlaylistStore,
 		requestedClipStore,
-		removeClip
+		removeClip,
+		playlistDisplayName
 	} from '$lib/clips/store.js';
 	import {
 		loadDoneLog,
@@ -113,10 +114,10 @@
 	let addSheet = null;
 
 	$: navItems = [
-		{ id: 'library', label: $_('nav.library'), href: '#library', icon: '▦' },
-		{ id: 'practise', label: $_('nav.practise'), href: '#practise', icon: '◷' },
-		{ id: 'share', label: $_('nav.share'), href: '#share', icon: '↗' },
-		{ id: 'me', label: $_('nav.me'), href: '#me', icon: '◯' }
+		{ id: 'library', label: $_('nav.library'), href: '#library', icon: 'library' },
+		{ id: 'practise', label: $_('nav.practise'), href: '#practise', icon: 'practise' },
+		{ id: 'share', label: $_('nav.share'), href: '#share', icon: 'share' },
+		{ id: 'me', label: $_('nav.me'), href: '#me', icon: 'me' }
 	];
 
 	// Done marks, scoped to the identity that is signed in.
@@ -177,8 +178,23 @@
 		}, DEEP_LINK_PATIENCE_MS);
 	}
 
+	/**
+	 * "Fullscreen" by the player: the cinema page for this clip, started at
+	 * once — the press that asked for it is the gesture fullscreen needs.
+	 * @param {Clip} clip
+	 */
+	function openCinema(clip) {
+		cinemaAutostart = true;
+		cinemaClip = clip;
+		cinemaMissing = false;
+		cinema = true;
+		playing = null;
+	}
+	let cinemaAutostart = false;
+
 	/** Back to the playlist, and to an address that would not come back here. */
 	function leaveCinema() {
+		cinemaAutostart = false;
 		cinema = false;
 		cinemaClip = null;
 		cinemaMissing = false;
@@ -443,6 +459,7 @@
 		missing={cinemaMissing}
 		failure={showModal ? null : error || $initializationStore.error || null}
 		doneToday={cinemaClip ? doneToday(doneLog, cinemaClip.id) : false}
+		autostart={cinemaAutostart}
 		ondone={done}
 		onleave={leaveCinema}
 	/>
@@ -514,6 +531,15 @@
 
 	<div hidden={$viewStore !== 'playlist'} data-testid="view-playlist">
 		<PlaylistView onback={() => goTo('library')} onshare={() => goTo('share')} notify={showToast}>
+			<ClipPlayer
+				clip={cinema ? null : playing}
+				playlistAddress={$activePlaylistStore.address}
+				playlistName={playlistDisplayName($activePlaylistStore.name)}
+				doneToday={playing ? doneToday(doneLog, playing.id) : false}
+				onclose={() => (playing = null)}
+				ondone={done}
+				onfullscreen={openCinema}
+			/>
 			{#if $initializationStore.isInitialized && $activePlaylistStore.kind !== 'none' && !cinema}
 				<ClipFilters
 					teachers={$teachersStore}
@@ -530,6 +556,7 @@
 					{doneLog}
 					isOwner={$activePlaylistStore.kind === 'owner'}
 					{identityId}
+					currentId={playing?.id ?? ''}
 					onplay={play}
 					ondone={done}
 					onundo={undo}
@@ -616,14 +643,6 @@
 		}}
 	/>
 </dialog>
-
-<ClipPlayer
-	clip={playing}
-	playlistAddress={$activePlaylistStore.address}
-	doneToday={playing ? doneToday(doneLog, playing.id) : false}
-	onclose={() => (playing = null)}
-	ondone={done}
-/>
 
 <!-- The relay's sponsor button floats where the plus and the bottom bar are; it lives on Me. -->
 {#if SponsorRelayFab && !cinema && $viewStore === 'me'}

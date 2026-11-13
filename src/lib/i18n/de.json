@@ -207,7 +207,9 @@
 		"markedDone": "Als absolviert markiert: {minutes} Min.",
 		"noThumbnail": "Keine Vorschau",
 		"addedByYou": "von dir hinzugefügt",
-		"addedByOther": "von jemand anderem hinzugefügt"
+		"addedByOther": "von jemand anderem hinzugefügt",
+		"playing": "läuft gerade",
+		"listHeading": "In dieser Playlist · {count, plural, one {# Clip} other {# Clips}}"
 	},
 	"filter": {
 		"heading": "Clip finden",
@@ -215,12 +217,13 @@
 		"teacherAll": "alle Lehrer:innen",
 		"tag": "Tag",
 		"tagAll": "alle Tags",
-		"minutes": "Ich habe {minutes} Minuten",
-		"minutesAny": "egal wie lang",
 		"showing": "{count} von {total} Clips",
 		"reset": "Filter zurücksetzen",
 		"empty": "Noch keine Clips. Füge oben einen Link ein, um den ersten hinzuzufügen.",
-		"emptyFiltered": "Kein Clip passt. Lockere die Filter ein wenig."
+		"emptyFiltered": "Kein Clip passt. Lockere die Filter ein wenig.",
+		"all": "Alle",
+		"upTo": "bis {minutes} Min.",
+		"more": "Filter"
 	},
 	"transfer": {
 		"heading": "Vorschläge in Claude",

@@ -344,7 +344,7 @@ textarea::placeholder {
 		align-items: center;
 		gap: 0.25rem;
 		min-height: 2.75rem;
-		font-size: 0.6875rem;
+		font-size: 0.75rem;
 		color: var(--faint);
 		text-decoration: none;
 	}
@@ -356,9 +356,9 @@ textarea::placeholder {
 		display: flex;
 		align-items: center;
 		justify-content: center;
-		width: 2rem;
-		height: 1.5rem;
-		border-radius: 8px;
+		width: 3rem;
+		height: 1.875rem;
+		border-radius: 999px;
 	}
 	.bottom-bar-item[aria-current='page'] .bottom-bar-icon {
 		background: var(--accent);

@@ -12,6 +12,8 @@
 	/** The owner may remove any clip; everyone else only what they added. */
 	export let isOwner = false;
 	export let identityId = '';
+	/** The clip playing in the player above the list. */
+	export let currentId = '';
 	/** @type {(clip: Clip) => void} */
 	export let onplay = () => {};
 	/** @type {(clip: Clip) => void} */
@@ -30,10 +32,14 @@
 
 <section class="mt-4" data-testid="clip-grid">
 	{#if clips.length}
-		<div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+		<h3 class="section-label">
+			{$_('clip.listHeading', { values: { count: clips.length } })}
+		</h3>
+		<ul>
 			{#each clips as clip (clip.id)}
 				<ClipCard
 					{clip}
+					current={clip.id === currentId}
 					doneToday={doneToday(doneLog, clip.id)}
 					doneCount={doneCount(doneLog, clip.id)}
 					canRemove={isOwner || (Boolean(identityId) && clip.addedBy === identityId)}
@@ -48,7 +54,7 @@
 					{onremove}
 				/>
 			{/each}
-		</div>
+		</ul>
 	{:else}
 		<p
 			class="rounded-lg border border-dashed border-border py-10 text-center text-sm text-faint"

@@ -8,10 +8,10 @@ import BottomBar from './BottomBar.svelte';
 import '../app.css';
 
 const items = [
-	{ id: 'library', label: 'Library', href: '#library', icon: '▦' },
-	{ id: 'practise', label: 'Practise', href: '#practise', icon: '◷' },
-	{ id: 'share', label: 'Share', href: '#share', icon: '↗' },
-	{ id: 'me', label: 'Me', href: '#me', icon: '◯' }
+	{ id: 'library', label: 'Library', href: '#library', icon: 'library' },
+	{ id: 'practise', label: 'Practise', href: '#practise', icon: 'practise' },
+	{ id: 'share', label: 'Share', href: '#share', icon: 'share' },
+	{ id: 'me', label: 'Me', href: '#me', icon: 'me' }
 ];
 
 describe('BottomBar', () => {

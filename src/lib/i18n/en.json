@@ -207,7 +207,9 @@
 		"markedDone": "Marked as done: {minutes} min",
 		"noThumbnail": "No preview",
 		"addedByYou": "added by you",
-		"addedByOther": "added by someone else"
+		"addedByOther": "added by someone else",
+		"playing": "playing now",
+		"listHeading": "In this playlist · {count, plural, one {# clip} other {# clips}}"
 	},
 	"filter": {
 		"heading": "Find a clip",
@@ -215,12 +217,13 @@
 		"teacherAll": "all teachers",
 		"tag": "Tag",
 		"tagAll": "all tags",
-		"minutes": "I have {minutes} minutes",
-		"minutesAny": "any length",
 		"showing": "{count} of {total} clips",
 		"reset": "Reset filters",
 		"empty": "No clips yet. Paste a link above to add the first one.",
-		"emptyFiltered": "No clip fits. Loosen the filters a little."
+		"emptyFiltered": "No clip fits. Loosen the filters a little.",
+		"all": "All",
+		"upTo": "up to {minutes} min",
+		"more": "Filter"
 	},
 	"transfer": {
 		"heading": "Suggestions in Claude",
