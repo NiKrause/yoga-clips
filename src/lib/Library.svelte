@@ -158,9 +158,11 @@
 						data-testid="library-continue-play"
 					>
 						{#if continueThumb}
+							<!-- lazy: a hidden library (behind the cinema page) asks nobody -->
 							<img
 								src={continueThumb}
 								alt=""
+								loading="lazy"
 								referrerpolicy="no-referrer"
 								class="h-full w-full object-cover"
 							/>

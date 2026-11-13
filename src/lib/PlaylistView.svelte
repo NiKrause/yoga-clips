@@ -10,6 +10,8 @@
 	export let onback = () => {};
 	/** To the share view. */
 	export let onshare = () => {};
+	/** Add a clip: on this page from its head, where nothing lies under it. */
+	export let onadd = () => {};
 	/** @type {(message: string, type?: 'default' | 'success' | 'error' | 'warning') => void} */
 	export let notify = () => {};
 
@@ -34,12 +36,21 @@
 			data-testid="playlist-back">‹ {$_('nav.library')}</button
 		>
 		{#if $activePlaylistStore.address}
-			<button
-				type="button"
-				class="btn btn-ghost btn-sm"
-				on:click={onshare}
-				data-testid="playlist-share">{$_('nav.share')}</button
-			>
+			<span class="flex items-center gap-2">
+				<button
+					type="button"
+					class="btn btn-primary btn-sm"
+					on:click={onadd}
+					aria-label={$_('clip.addHeading')}
+					data-testid="playlist-add-clip">+ {$_('playlist.addClip')}</button
+				>
+				<button
+					type="button"
+					class="btn btn-ghost btn-sm"
+					on:click={onshare}
+					data-testid="playlist-share">{$_('nav.share')}</button
+				>
+			</span>
 		{/if}
 	</div>
 	{#if $activePlaylistStore.address}
