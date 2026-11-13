@@ -1,135 +1,805 @@
 <!doctype html>
 <html lang="de">
-<head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Yoga Clips: Entwurf B, Bibliothek mit eingebettetem Video</title>
-<!-- Direction B of the relaunch, worked out with the video embedded in the page.
+	<head>
+		<meta charset="utf-8" />
+		<meta name="viewport" content="width=device-width, initial-scale=1" />
+		<title>Yoga Clips: Entwurf B, Bibliothek mit eingebettetem Video</title>
+		<!-- Direction B of the relaunch, worked out with the video embedded in the page.
      Static, made-up data; its styles are a copy of mockups.html plus the player. ?theme=dark for night. -->
-<style>
-:root{--bg:#faf6ee;--surface:#fff;--text:#0f1b2d;--text-2:#51606f;--line:#e3dccb;--accent:#ffb020;--accent-ink:#0f1b2d;--accent-text:#8a5a00;--ok:#1d7a4f;--tile1:#ffe2a8;--tile2:#d9e6f5;--tile3:#e7dcf9;--tile4:#d6eedd;--page:#efe9db}
-[data-theme=dark]{--bg:#0b0e15;--surface:#161b26;--text:#f4f6fb;--text-2:#a3adbd;--line:#262d3b;--accent:#c6f24e;--accent-ink:#0b0e15;--accent-text:#c6f24e;--ok:#7fdc9f;--tile1:#3a3414;--tile2:#162a40;--tile3:#2a2147;--tile4:#143226;--page:#05070b}
-*{box-sizing:border-box;margin:0}
-body{font-family:"Sora Variable",Sora,system-ui,-apple-system,"Segoe UI",sans-serif;background:var(--page);color:var(--text);padding:28px 24px 40px}
-h1{font-size:22px;font-weight:600;margin-bottom:4px}
-.lead{color:var(--text-2);font-size:14px;margin-bottom:24px;max-width:780px;line-height:1.5}
-.row{display:flex;gap:28px;flex-wrap:wrap;align-items:flex-start}
-.col{width:360px}
-.col h2{font-size:16px;font-weight:600;margin-bottom:2px}
-.col p.note{font-size:12.5px;color:var(--text-2);line-height:1.45;min-height:54px;margin-bottom:12px}
-.phone{width:360px;height:740px;background:var(--bg);border:1px solid var(--line);border-radius:34px;overflow:hidden;display:flex;flex-direction:column;position:relative}
-.top{display:flex;align-items:center;justify-content:space-between;padding:18px 20px 10px}
-.brand{display:flex;align-items:center;gap:8px;font-weight:600;font-size:15px}
-.brand svg{width:26px;height:26px}
-.arc{fill:none;stroke:var(--accent);stroke-width:14;stroke-linecap:round}
-.play{fill:var(--text);stroke:var(--text);stroke-width:8;stroke-linejoin:round}
-.dot{width:8px;height:8px;border-radius:50%;background:var(--ok);display:inline-block}
-.pill{font-size:12px;color:var(--text-2);display:flex;align-items:center;gap:6px}
-.body{flex:1;padding:6px 20px 0;overflow:hidden}
-.h{font-size:26px;line-height:1.15;font-weight:600;letter-spacing:-.01em}
-.sub{color:var(--text-2);font-size:14px;margin-top:6px}
-.chips{display:flex;gap:8px;margin:14px 0 16px}
-.chip{border:1px solid var(--line);background:var(--surface);border-radius:999px;padding:8px 13px;font-size:13px}
-.chip.on{background:var(--text);color:var(--bg);border-color:var(--text)}
-.card{background:var(--surface);border:1px solid var(--line);border-radius:18px;overflow:hidden}
-.thumb{height:150px;background:var(--tile1);display:flex;align-items:center;justify-content:center;position:relative}
-.thumb .len{position:absolute;right:10px;bottom:10px;background:var(--bg);border-radius:6px;font:12px ui-monospace,Menlo,monospace;padding:3px 6px}
-.bigplay{width:58px;height:58px;border-radius:50%;background:var(--accent);display:flex;align-items:center;justify-content:center}
-.bigplay::after{content:"";border-left:18px solid var(--accent-ink);border-top:11px solid transparent;border-bottom:11px solid transparent;margin-left:5px}
-.pad{padding:14px 16px 16px}
-.t{font-size:16px;font-weight:600;line-height:1.3}
-.m{font-size:13px;color:var(--text-2);margin-top:3px}
-.btn{display:block;text-align:center;background:var(--accent);color:var(--accent-ink);font-weight:600;font-size:15px;border-radius:12px;padding:12px;margin-top:12px}
-.btn.ghost{background:transparent;border:1px solid var(--line);color:var(--text)}
-.sec{font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:var(--text-2);margin:18px 0 8px}
-.li{display:flex;align-items:center;gap:12px;padding:9px 0;border-top:1px solid var(--line)}
-.li:first-of-type{border-top:0}
-.sq{width:44px;height:44px;border-radius:10px;background:var(--tile2);flex:none}
-.sq.b{background:var(--tile3)}.sq.c{background:var(--tile4)}.sq.a{background:var(--tile1)}
-.li .t{font-size:14px}.li .m{font-size:12px;margin-top:1px}
-.li .r{margin-left:auto;font:12px ui-monospace,Menlo,monospace;color:var(--text-2)}
-.done{color:var(--ok);font-size:15px;margin-left:auto}
-.bar{height:6px;border-radius:3px;background:var(--line);margin-top:8px;overflow:hidden}
-.bar i{display:block;height:100%;width:40%;background:var(--accent)}
-.nav{display:flex;border-top:1px solid var(--line);background:var(--surface);padding:10px 8px 16px}
-.nav div{flex:1;text-align:center;font-size:11px;color:var(--text-2)}
-.nav div.on{color:var(--text);font-weight:600}
-.nav div::before{content:"";display:block;width:22px;height:22px;border-radius:7px;border:2px solid currentColor;margin:0 auto 4px;opacity:.75}
-.nav div.on::before{background:var(--accent);border-color:var(--accent);opacity:1}
-.search{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:11px 14px;font-size:14px;color:var(--text-2);margin:10px 0 4px}
-.grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
-.cover{border-radius:16px;height:112px;padding:12px;display:flex;flex-direction:column;justify-content:flex-end;background:var(--tile1)}
-.cover.b{background:var(--tile2)}.cover.c{background:var(--tile3)}
-.cover.new{background:transparent;border:1.5px dashed var(--line);align-items:center;justify-content:center;color:var(--text-2);font-size:13px}
-.cover .t{font-size:15px}.cover .m{font-size:12px}
-.badge{font-size:11px;border:1px solid var(--line);border-radius:999px;padding:2px 8px;color:var(--text-2);margin-left:auto}
-.mini{position:absolute;left:12px;right:12px;bottom:78px;background:var(--text);color:var(--bg);border-radius:14px;padding:10px 14px;display:flex;align-items:center;gap:10px;font-size:13px}
-.mini b{font-weight:600}.mini span{margin-left:auto;background:var(--accent);color:var(--accent-ink);border-radius:50%;width:30px;height:30px;display:flex;align-items:center;justify-content:center;font-size:12px}
-.fab{position:absolute;right:18px;bottom:142px;width:52px;height:52px;border-radius:50%;background:var(--accent);color:var(--accent-ink);font-size:28px;display:flex;align-items:center;justify-content:center;line-height:1}
-.title-dd{font-size:22px;font-weight:600}
-.share{font-size:13px;font-weight:600;border:1px solid var(--line);background:var(--surface);border-radius:999px;padding:7px 14px}
-.paste{display:flex;gap:8px;margin:8px 0 6px}
-.paste div{flex:1;background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:12px 14px;font-size:14px;color:var(--text-2)}
-.paste span{width:46px;border-radius:12px;background:var(--accent);color:var(--accent-ink);display:flex;align-items:center;justify-content:center;font-size:22px}
-.hint{font-size:12px;color:var(--text-2)}
-.tabs{display:flex;gap:16px;font-size:14px;color:var(--text-2);margin:16px 0 4px}
-.tabs b{color:var(--text);border-bottom:2px solid var(--accent);padding-bottom:4px;font-weight:600}
-.claude{margin-top:14px;border:1px solid var(--line);background:var(--surface);border-radius:14px;padding:12px 14px;display:flex;align-items:center;gap:10px;font-size:13px}
-.claude i{font-style:normal;margin-left:auto;color:var(--accent-text);font-weight:600}
-.tech{font-size:12px;color:var(--text-2);text-align:center;margin-top:12px}
+		<style>
+			:root {
+				--bg: #faf6ee;
+				--surface: #fff;
+				--text: #0f1b2d;
+				--text-2: #51606f;
+				--line: #e3dccb;
+				--accent: #ffb020;
+				--accent-ink: #0f1b2d;
+				--accent-text: #8a5a00;
+				--ok: #1d7a4f;
+				--tile1: #ffe2a8;
+				--tile2: #d9e6f5;
+				--tile3: #e7dcf9;
+				--tile4: #d6eedd;
+				--page: #efe9db;
+			}
+			[data-theme='dark'] {
+				--bg: #0b0e15;
+				--surface: #161b26;
+				--text: #f4f6fb;
+				--text-2: #a3adbd;
+				--line: #262d3b;
+				--accent: #c6f24e;
+				--accent-ink: #0b0e15;
+				--accent-text: #c6f24e;
+				--ok: #7fdc9f;
+				--tile1: #3a3414;
+				--tile2: #162a40;
+				--tile3: #2a2147;
+				--tile4: #143226;
+				--page: #05070b;
+			}
+			* {
+				box-sizing: border-box;
+				margin: 0;
+			}
+			body {
+				font-family:
+					'Sora Variable',
+					Sora,
+					system-ui,
+					-apple-system,
+					'Segoe UI',
+					sans-serif;
+				background: var(--page);
+				color: var(--text);
+				padding: 28px 24px 40px;
+			}
+			h1 {
+				font-size: 22px;
+				font-weight: 600;
+				margin-bottom: 4px;
+			}
+			.lead {
+				color: var(--text-2);
+				font-size: 14px;
+				margin-bottom: 24px;
+				max-width: 780px;
+				line-height: 1.5;
+			}
+			.row {
+				display: flex;
+				gap: 28px;
+				flex-wrap: wrap;
+				align-items: flex-start;
+			}
+			.col {
+				width: 360px;
+			}
+			.col h2 {
+				font-size: 16px;
+				font-weight: 600;
+				margin-bottom: 2px;
+			}
+			.col p.note {
+				font-size: 12.5px;
+				color: var(--text-2);
+				line-height: 1.45;
+				min-height: 54px;
+				margin-bottom: 12px;
+			}
+			.phone {
+				width: 360px;
+				height: 740px;
+				background: var(--bg);
+				border: 1px solid var(--line);
+				border-radius: 34px;
+				overflow: hidden;
+				display: flex;
+				flex-direction: column;
+				position: relative;
+			}
+			.top {
+				display: flex;
+				align-items: center;
+				justify-content: space-between;
+				padding: 18px 20px 10px;
+			}
+			.brand {
+				display: flex;
+				align-items: center;
+				gap: 8px;
+				font-weight: 600;
+				font-size: 15px;
+			}
+			.brand svg {
+				width: 26px;
+				height: 26px;
+			}
+			.arc {
+				fill: none;
+				stroke: var(--accent);
+				stroke-width: 14;
+				stroke-linecap: round;
+			}
+			.play {
+				fill: var(--text);
+				stroke: var(--text);
+				stroke-width: 8;
+				stroke-linejoin: round;
+			}
+			.dot {
+				width: 8px;
+				height: 8px;
+				border-radius: 50%;
+				background: var(--ok);
+				display: inline-block;
+			}
+			.pill {
+				font-size: 12px;
+				color: var(--text-2);
+				display: flex;
+				align-items: center;
+				gap: 6px;
+			}
+			.body {
+				flex: 1;
+				padding: 6px 20px 0;
+				overflow: hidden;
+			}
+			.h {
+				font-size: 26px;
+				line-height: 1.15;
+				font-weight: 600;
+				letter-spacing: -0.01em;
+			}
+			.sub {
+				color: var(--text-2);
+				font-size: 14px;
+				margin-top: 6px;
+			}
+			.chips {
+				display: flex;
+				gap: 8px;
+				margin: 14px 0 16px;
+			}
+			.chip {
+				border: 1px solid var(--line);
+				background: var(--surface);
+				border-radius: 999px;
+				padding: 8px 13px;
+				font-size: 13px;
+			}
+			.chip.on {
+				background: var(--text);
+				color: var(--bg);
+				border-color: var(--text);
+			}
+			.card {
+				background: var(--surface);
+				border: 1px solid var(--line);
+				border-radius: 18px;
+				overflow: hidden;
+			}
+			.thumb {
+				height: 150px;
+				background: var(--tile1);
+				display: flex;
+				align-items: center;
+				justify-content: center;
+				position: relative;
+			}
+			.thumb .len {
+				position: absolute;
+				right: 10px;
+				bottom: 10px;
+				background: var(--bg);
+				border-radius: 6px;
+				font:
+					12px ui-monospace,
+					Menlo,
+					monospace;
+				padding: 3px 6px;
+			}
+			.bigplay {
+				width: 58px;
+				height: 58px;
+				border-radius: 50%;
+				background: var(--accent);
+				display: flex;
+				align-items: center;
+				justify-content: center;
+			}
+			.bigplay::after {
+				content: '';
+				border-left: 18px solid var(--accent-ink);
+				border-top: 11px solid transparent;
+				border-bottom: 11px solid transparent;
+				margin-left: 5px;
+			}
+			.pad {
+				padding: 14px 16px 16px;
+			}
+			.t {
+				font-size: 16px;
+				font-weight: 600;
+				line-height: 1.3;
+			}
+			.m {
+				font-size: 13px;
+				color: var(--text-2);
+				margin-top: 3px;
+			}
+			.btn {
+				display: block;
+				text-align: center;
+				background: var(--accent);
+				color: var(--accent-ink);
+				font-weight: 600;
+				font-size: 15px;
+				border-radius: 12px;
+				padding: 12px;
+				margin-top: 12px;
+			}
+			.btn.ghost {
+				background: transparent;
+				border: 1px solid var(--line);
+				color: var(--text);
+			}
+			.sec {
+				font-size: 12px;
+				letter-spacing: 0.08em;
+				text-transform: uppercase;
+				color: var(--text-2);
+				margin: 18px 0 8px;
+			}
+			.li {
+				display: flex;
+				align-items: center;
+				gap: 12px;
+				padding: 9px 0;
+				border-top: 1px solid var(--line);
+			}
+			.li:first-of-type {
+				border-top: 0;
+			}
+			.sq {
+				width: 44px;
+				height: 44px;
+				border-radius: 10px;
+				background: var(--tile2);
+				flex: none;
+			}
+			.sq.b {
+				background: var(--tile3);
+			}
+			.sq.c {
+				background: var(--tile4);
+			}
+			.sq.a {
+				background: var(--tile1);
+			}
+			.li .t {
+				font-size: 14px;
+			}
+			.li .m {
+				font-size: 12px;
+				margin-top: 1px;
+			}
+			.li .r {
+				margin-left: auto;
+				font:
+					12px ui-monospace,
+					Menlo,
+					monospace;
+				color: var(--text-2);
+			}
+			.done {
+				color: var(--ok);
+				font-size: 15px;
+				margin-left: auto;
+			}
+			.bar {
+				height: 6px;
+				border-radius: 3px;
+				background: var(--line);
+				margin-top: 8px;
+				overflow: hidden;
+			}
+			.bar i {
+				display: block;
+				height: 100%;
+				width: 40%;
+				background: var(--accent);
+			}
+			.nav {
+				display: flex;
+				border-top: 1px solid var(--line);
+				background: var(--surface);
+				padding: 10px 8px 16px;
+			}
+			.nav div {
+				flex: 1;
+				text-align: center;
+				font-size: 11px;
+				color: var(--text-2);
+			}
+			.nav div.on {
+				color: var(--text);
+				font-weight: 600;
+			}
+			.nav div::before {
+				content: '';
+				display: block;
+				width: 22px;
+				height: 22px;
+				border-radius: 7px;
+				border: 2px solid currentColor;
+				margin: 0 auto 4px;
+				opacity: 0.75;
+			}
+			.nav div.on::before {
+				background: var(--accent);
+				border-color: var(--accent);
+				opacity: 1;
+			}
+			.search {
+				background: var(--surface);
+				border: 1px solid var(--line);
+				border-radius: 12px;
+				padding: 11px 14px;
+				font-size: 14px;
+				color: var(--text-2);
+				margin: 10px 0 4px;
+			}
+			.grid {
+				display: grid;
+				grid-template-columns: 1fr 1fr;
+				gap: 12px;
+			}
+			.cover {
+				border-radius: 16px;
+				height: 112px;
+				padding: 12px;
+				display: flex;
+				flex-direction: column;
+				justify-content: flex-end;
+				background: var(--tile1);
+			}
+			.cover.b {
+				background: var(--tile2);
+			}
+			.cover.c {
+				background: var(--tile3);
+			}
+			.cover.new {
+				background: transparent;
+				border: 1.5px dashed var(--line);
+				align-items: center;
+				justify-content: center;
+				color: var(--text-2);
+				font-size: 13px;
+			}
+			.cover .t {
+				font-size: 15px;
+			}
+			.cover .m {
+				font-size: 12px;
+			}
+			.badge {
+				font-size: 11px;
+				border: 1px solid var(--line);
+				border-radius: 999px;
+				padding: 2px 8px;
+				color: var(--text-2);
+				margin-left: auto;
+			}
+			.mini {
+				position: absolute;
+				left: 12px;
+				right: 12px;
+				bottom: 78px;
+				background: var(--text);
+				color: var(--bg);
+				border-radius: 14px;
+				padding: 10px 14px;
+				display: flex;
+				align-items: center;
+				gap: 10px;
+				font-size: 13px;
+			}
+			.mini b {
+				font-weight: 600;
+			}
+			.mini span {
+				margin-left: auto;
+				background: var(--accent);
+				color: var(--accent-ink);
+				border-radius: 50%;
+				width: 30px;
+				height: 30px;
+				display: flex;
+				align-items: center;
+				justify-content: center;
+				font-size: 12px;
+			}
+			.fab {
+				position: absolute;
+				right: 18px;
+				bottom: 142px;
+				width: 52px;
+				height: 52px;
+				border-radius: 50%;
+				background: var(--accent);
+				color: var(--accent-ink);
+				font-size: 28px;
+				display: flex;
+				align-items: center;
+				justify-content: center;
+				line-height: 1;
+			}
+			.title-dd {
+				font-size: 22px;
+				font-weight: 600;
+			}
+			.share {
+				font-size: 13px;
+				font-weight: 600;
+				border: 1px solid var(--line);
+				background: var(--surface);
+				border-radius: 999px;
+				padding: 7px 14px;
+			}
+			.paste {
+				display: flex;
+				gap: 8px;
+				margin: 8px 0 6px;
+			}
+			.paste div {
+				flex: 1;
+				background: var(--surface);
+				border: 1px solid var(--line);
+				border-radius: 12px;
+				padding: 12px 14px;
+				font-size: 14px;
+				color: var(--text-2);
+			}
+			.paste span {
+				width: 46px;
+				border-radius: 12px;
+				background: var(--accent);
+				color: var(--accent-ink);
+				display: flex;
+				align-items: center;
+				justify-content: center;
+				font-size: 22px;
+			}
+			.hint {
+				font-size: 12px;
+				color: var(--text-2);
+			}
+			.tabs {
+				display: flex;
+				gap: 16px;
+				font-size: 14px;
+				color: var(--text-2);
+				margin: 16px 0 4px;
+			}
+			.tabs b {
+				color: var(--text);
+				border-bottom: 2px solid var(--accent);
+				padding-bottom: 4px;
+				font-weight: 600;
+			}
+			.claude {
+				margin-top: 14px;
+				border: 1px solid var(--line);
+				background: var(--surface);
+				border-radius: 14px;
+				padding: 12px 14px;
+				display: flex;
+				align-items: center;
+				gap: 10px;
+				font-size: 13px;
+			}
+			.claude i {
+				font-style: normal;
+				margin-left: auto;
+				color: var(--accent-text);
+				font-weight: 600;
+			}
+			.tech {
+				font-size: 12px;
+				color: var(--text-2);
+				text-align: center;
+				margin-top: 12px;
+			}
 
-.video{aspect-ratio:16/9;background:var(--tile2);border-radius:16px;position:relative;display:flex;align-items:center;justify-content:center;overflow:hidden}
-.video.playing{background:#000;border-radius:0;margin:0 -20px}
-.video.playing .fig{width:46%;height:70%;border-radius:12px;background:#1d2a3a}
-.video .src{position:absolute;left:10px;top:10px;font-size:11px;background:var(--bg);color:var(--text);border-radius:6px;padding:3px 7px}
-.video .len{position:absolute;right:10px;bottom:10px;background:var(--bg);color:var(--text);border-radius:6px;font:12px ui-monospace,Menlo,monospace;padding:3px 6px}
-.video .prog{position:absolute;left:0;right:0;bottom:0;height:4px;background:#ffffff33}
-.video .prog i{display:block;height:100%;width:38%;background:var(--accent)}
-.video.tall{aspect-ratio:auto;height:330px}
-.video.tall .fig{width:186px;height:100%;border-radius:0;background:#1d2a3a}
-.acts{display:flex;gap:8px;margin-top:12px}
-.acts .btn{flex:1;margin-top:0;font-size:14px;padding:11px}
-.back{font-size:14px;color:var(--text-2)}
-.now{background:var(--surface);border-radius:10px;margin:0 -8px;padding:9px 8px!important;border-top:0!important}
-.cont{font-size:12px;color:var(--text-2);margin-top:8px;line-height:1.4}
-</style>
-</head>
-<body>
-<svg width="0" height="0" style="position:absolute"><symbol id="signet" viewBox="0 0 100 100"><path class="arc" d="M50 15A35 35 0 1 1 15 50"/><path class="play" d="M43 37V63L65 50Z"/></symbol></svg>
-<h1>Entwurf B · Bibliothek, mit eingebettetem Video</h1>
-<p class="lead">Die gewählte Richtung, um den Player ergänzt: Das Video spielt in der Seite, nicht in einem Dialog darüber. Geladen wird es erst nach einem Druck auf das Vorschaubild. Daten und Namen sind erfunden.</p>
-<div class="row"><div class="col"><h2>B1 · Bibliothek</h2><p class="note">Oben „Weiter üben“: der zuletzt geöffnete Clip als Vorschaubild. Ein Druck lädt den Player an dieser Stelle; vorher geht nichts an den Videodienst.</p><div class="phone"><div class="top"><div class="brand"><svg><use href="#signet"/></svg>Bibliothek</div><div class="pill"><span class="dot"></span></div></div><div class="body">
-  <div class="sec" style="margin-top:4px">Weiter üben</div>
-  <div class="video"><div class="bigplay"></div><div class="src">YouTube</div><div class="len">4:30</div></div>
-  <div class="t" style="margin-top:10px">Schultern öffnen im Sitzen</div><div class="m">Beispiel-Lehrerin · aus „Schreibtisch“</div>
-  <div class="sec">Deine Playlists</div>
-  <div class="grid">
-    <div class="cover" style="height:92px"><div class="t">Morgens</div><div class="m">8 Clips · 41 Min</div></div>
-    <div class="cover b" style="height:92px"><div class="t">Schreibtisch</div><div class="m">12 Clips · 52 Min</div></div>
-    <div class="cover c" style="height:92px"><div class="t">Atem</div><div class="m">5 Clips · 27 Min</div></div>
-    <div class="cover new" style="height:92px">+ Neue Playlist</div>
-  </div>
-  <div class="sec">Mit dir geteilt</div>
-  <div class="li"><div class="sq c"></div><div><div class="t">Rücken nach dem Laufen</div><div class="m">6 Clips</div></div><div class="m" style="margin-left:auto;margin-right:66px">von Alex</div></div>
-</div><div class="fab" style="bottom:84px">+</div><div class="nav"><div class="on">Bibliothek</div><div>Üben</div><div>Teilen</div><div>Ich</div></div></div></div><div class="col"><h2>B2 · Playlist mit Player</h2><p class="note">Das Video läuft oben in der Seite, die Liste der Playlist bleibt darunter sichtbar. „Absolviert“ liegt direkt am Video, „Vollbild“ führt in den Kinomodus.</p><div class="phone"><div class="top"><div class="back">‹ Bibliothek</div><div class="share">Teilen</div></div><div class="body">
-  <div class="video playing"><div class="fig"></div><div class="src">YouTube</div><div class="prog"><i></i></div></div>
-  <div class="t" style="margin-top:12px;font-size:17px">Schultern öffnen im Sitzen</div><div class="m">Beispiel-Lehrerin · 4:30 · Schreibtisch</div>
-  <div class="acts"><div class="btn">✓ Absolviert</div><div class="btn ghost">Vollbild</div></div>
-  <div class="sec">Als Nächstes · 11 Clips</div>
-  <div class="li now"><div class="sq a"></div><div><div class="t">Schultern öffnen im Sitzen</div><div class="m">läuft gerade</div></div><div class="r">4:30</div></div>
-  <div class="li"><div class="sq"></div><div><div class="t">Nacken lösen</div><div class="m">Beispiel-Lehrer</div></div><div class="r">3:00</div></div>
-  <div class="li"><div class="sq b"></div><div><div class="t">Atem zählen</div><div class="m">Beispiel-Lehrerin</div></div><div class="r">5:00</div></div>
-  <div class="li"><div class="sq c"></div><div><div class="t">Handgelenke und Unterarme</div><div class="m">Beispiel-Lehrer</div></div><div class="r">6:15</div></div>
-</div><div class="nav"><div class="on">Bibliothek</div><div>Üben</div><div>Teilen</div><div>Ich</div></div></div></div><div class="col"><h2>B3 · Hochkant (Instagram)</h2><p class="note">Derselbe Platz, aber höher, für Reels und Shorts. Der Rahmen ist Instagrams eigene Einbettung, ohne Skript in der App.</p><div class="phone"><div class="top"><div class="back">‹ Bibliothek</div><div class="share">Teilen</div></div><div class="body">
-  <div class="video playing tall"><div class="fig"></div><div class="src">Instagram</div><div class="prog"><i></i></div></div>
-  <div class="t" style="margin-top:12px;font-size:17px">Baum in vier Varianten</div><div class="m">Beispiel-Lehrerin · 0:40 · Morgens</div>
-  <div class="acts"><div class="btn">✓ Absolviert</div><div class="btn ghost">Auf Instagram öffnen</div></div>
-  <div class="cont">Hochkant-Clips bekommen mehr Höhe. Ob ein Instagram-Video im Rahmen läuft, entscheidet Instagram; der Knopf daneben bleibt der Ausweg.</div>
-  <div class="sec">Als Nächstes · 7 Clips</div>
-  <div class="li"><div class="sq"></div><div><div class="t">Sonnengruß, langsam</div><div class="m">Beispiel-Lehrer</div></div><div class="r">6:00</div></div>
-</div><div class="nav"><div class="on">Bibliothek</div><div>Üben</div><div>Teilen</div><div>Ich</div></div></div></div></div>
-<script>
-if (new URLSearchParams(location.search).get('theme') === 'dark') document.documentElement.dataset.theme = 'dark'
-</script>
-</body>
+			.video {
+				aspect-ratio: 16/9;
+				background: var(--tile2);
+				border-radius: 16px;
+				position: relative;
+				display: flex;
+				align-items: center;
+				justify-content: center;
+				overflow: hidden;
+			}
+			.video.playing {
+				background: #000;
+				border-radius: 0;
+				margin: 0 -20px;
+			}
+			.video.playing .fig {
+				width: 46%;
+				height: 70%;
+				border-radius: 12px;
+				background: #1d2a3a;
+			}
+			.video .src {
+				position: absolute;
+				left: 10px;
+				top: 10px;
+				font-size: 11px;
+				background: var(--bg);
+				color: var(--text);
+				border-radius: 6px;
+				padding: 3px 7px;
+			}
+			.video .len {
+				position: absolute;
+				right: 10px;
+				bottom: 10px;
+				background: var(--bg);
+				color: var(--text);
+				border-radius: 6px;
+				font:
+					12px ui-monospace,
+					Menlo,
+					monospace;
+				padding: 3px 6px;
+			}
+			.video .prog {
+				position: absolute;
+				left: 0;
+				right: 0;
+				bottom: 0;
+				height: 4px;
+				background: #ffffff33;
+			}
+			.video .prog i {
+				display: block;
+				height: 100%;
+				width: 38%;
+				background: var(--accent);
+			}
+			.video.tall {
+				aspect-ratio: auto;
+				height: 330px;
+			}
+			.video.tall .fig {
+				width: 186px;
+				height: 100%;
+				border-radius: 0;
+				background: #1d2a3a;
+			}
+			.acts {
+				display: flex;
+				gap: 8px;
+				margin-top: 12px;
+			}
+			.acts .btn {
+				flex: 1;
+				margin-top: 0;
+				font-size: 14px;
+				padding: 11px;
+			}
+			.back {
+				font-size: 14px;
+				color: var(--text-2);
+			}
+			.now {
+				background: var(--surface);
+				border-radius: 10px;
+				margin: 0 -8px;
+				padding: 9px 8px !important;
+				border-top: 0 !important;
+			}
+			.cont {
+				font-size: 12px;
+				color: var(--text-2);
+				margin-top: 8px;
+				line-height: 1.4;
+			}
+		</style>
+	</head>
+	<body>
+		<svg width="0" height="0" style="position: absolute">
+			<symbol id="signet" viewBox="0 0 100 100">
+				<path class="arc" d="M50 15A35 35 0 1 1 15 50" />
+				<path class="play" d="M43 37V63L65 50Z" />
+			</symbol>
+		</svg>
+		<h1>Entwurf B · Bibliothek, mit eingebettetem Video</h1>
+		<p class="lead">
+			Die gewählte Richtung, um den Player ergänzt: Das Video spielt in der Seite, nicht in einem
+			Dialog darüber. Geladen wird es erst nach einem Druck auf das Vorschaubild. Daten und Namen
+			sind erfunden.
+		</p>
+		<div class="row">
+			<div class="col">
+				<h2>B1 · Bibliothek</h2>
+				<p class="note">
+					Oben „Weiter üben“: der zuletzt geöffnete Clip als Vorschaubild. Ein Druck lädt den Player
+					an dieser Stelle; vorher geht nichts an den Videodienst.
+				</p>
+				<div class="phone">
+					<div class="top">
+						<div class="brand">
+							<svg><use href="#signet" /></svg>Bibliothek
+						</div>
+						<div class="pill"><span class="dot"></span></div>
+					</div>
+					<div class="body">
+						<div class="sec" style="margin-top: 4px">Weiter üben</div>
+						<div class="video">
+							<div class="bigplay"></div>
+							<div class="src">YouTube</div>
+							<div class="len">4:30</div>
+						</div>
+						<div class="t" style="margin-top: 10px">Schultern öffnen im Sitzen</div>
+						<div class="m">Beispiel-Lehrerin · aus „Schreibtisch“</div>
+						<div class="sec">Deine Playlists</div>
+						<div class="grid">
+							<div class="cover" style="height: 92px">
+								<div class="t">Morgens</div>
+								<div class="m">8 Clips · 41 Min</div>
+							</div>
+							<div class="cover b" style="height: 92px">
+								<div class="t">Schreibtisch</div>
+								<div class="m">12 Clips · 52 Min</div>
+							</div>
+							<div class="cover c" style="height: 92px">
+								<div class="t">Atem</div>
+								<div class="m">5 Clips · 27 Min</div>
+							</div>
+							<div class="cover new" style="height: 92px">+ Neue Playlist</div>
+						</div>
+						<div class="sec">Mit dir geteilt</div>
+						<div class="li">
+							<div class="sq c"></div>
+							<div>
+								<div class="t">Rücken nach dem Laufen</div>
+								<div class="m">6 Clips</div>
+							</div>
+							<div class="m" style="margin-left: auto; margin-right: 66px">von Alex</div>
+						</div>
+					</div>
+					<div class="fab" style="bottom: 84px">+</div>
+					<div class="nav">
+						<div class="on">Bibliothek</div>
+						<div>Üben</div>
+						<div>Teilen</div>
+						<div>Ich</div>
+					</div>
+				</div>
+			</div>
+			<div class="col">
+				<h2>B2 · Playlist mit Player</h2>
+				<p class="note">
+					Das Video läuft oben in der Seite, die Liste der Playlist bleibt darunter sichtbar.
+					„Absolviert“ liegt direkt am Video, „Vollbild“ führt in den Kinomodus.
+				</p>
+				<div class="phone">
+					<div class="top">
+						<div class="back">‹ Bibliothek</div>
+						<div class="share">Teilen</div>
+					</div>
+					<div class="body">
+						<div class="video playing">
+							<div class="fig"></div>
+							<div class="src">YouTube</div>
+							<div class="prog"><i></i></div>
+						</div>
+						<div class="t" style="margin-top: 12px; font-size: 17px">
+							Schultern öffnen im Sitzen
+						</div>
+						<div class="m">Beispiel-Lehrerin · 4:30 · Schreibtisch</div>
+						<div class="acts">
+							<div class="btn">✓ Absolviert</div>
+							<div class="btn ghost">Vollbild</div>
+						</div>
+						<div class="sec">Als Nächstes · 11 Clips</div>
+						<div class="li now">
+							<div class="sq a"></div>
+							<div>
+								<div class="t">Schultern öffnen im Sitzen</div>
+								<div class="m">läuft gerade</div>
+							</div>
+							<div class="r">4:30</div>
+						</div>
+						<div class="li">
+							<div class="sq"></div>
+							<div>
+								<div class="t">Nacken lösen</div>
+								<div class="m">Beispiel-Lehrer</div>
+							</div>
+							<div class="r">3:00</div>
+						</div>
+						<div class="li">
+							<div class="sq b"></div>
+							<div>
+								<div class="t">Atem zählen</div>
+								<div class="m">Beispiel-Lehrerin</div>
+							</div>
+							<div class="r">5:00</div>
+						</div>
+						<div class="li">
+							<div class="sq c"></div>
+							<div>
+								<div class="t">Handgelenke und Unterarme</div>
+								<div class="m">Beispiel-Lehrer</div>
+							</div>
+							<div class="r">6:15</div>
+						</div>
+					</div>
+					<div class="nav">
+						<div class="on">Bibliothek</div>
+						<div>Üben</div>
+						<div>Teilen</div>
+						<div>Ich</div>
+					</div>
+				</div>
+			</div>
+			<div class="col">
+				<h2>B3 · Hochkant (Instagram)</h2>
+				<p class="note">
+					Derselbe Platz, aber höher, für Reels und Shorts. Der Rahmen ist Instagrams eigene
+					Einbettung, ohne Skript in der App.
+				</p>
+				<div class="phone">
+					<div class="top">
+						<div class="back">‹ Bibliothek</div>
+						<div class="share">Teilen</div>
+					</div>
+					<div class="body">
+						<div class="video playing tall">
+							<div class="fig"></div>
+							<div class="src">Instagram</div>
+							<div class="prog"><i></i></div>
+						</div>
+						<div class="t" style="margin-top: 12px; font-size: 17px">Baum in vier Varianten</div>
+						<div class="m">Beispiel-Lehrerin · 0:40 · Morgens</div>
+						<div class="acts">
+							<div class="btn">✓ Absolviert</div>
+							<div class="btn ghost">Auf Instagram öffnen</div>
+						</div>
+						<div class="cont">
+							Hochkant-Clips bekommen mehr Höhe. Ob ein Instagram-Video im Rahmen läuft, entscheidet
+							Instagram; der Knopf daneben bleibt der Ausweg.
+						</div>
+						<div class="sec">Als Nächstes · 7 Clips</div>
+						<div class="li">
+							<div class="sq"></div>
+							<div>
+								<div class="t">Sonnengruß, langsam</div>
+								<div class="m">Beispiel-Lehrer</div>
+							</div>
+							<div class="r">6:00</div>
+						</div>
+					</div>
+					<div class="nav">
+						<div class="on">Bibliothek</div>
+						<div>Üben</div>
+						<div>Teilen</div>
+						<div>Ich</div>
+					</div>
+				</div>
+			</div>
+		</div>
+		<script>
+			if (new URLSearchParams(location.search).get('theme') === 'dark')
+				document.documentElement.dataset.theme = 'dark';
+		</script>
+	</body>
 </html>
