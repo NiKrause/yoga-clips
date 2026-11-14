@@ -167,6 +167,7 @@ async function createPlaylist(page, name) {
 	await page.getByTestId('new-playlist-name').fill(name);
 	await page.getByTestId('new-playlist-create').click();
 	// A new playlist opens on its own page; who may add to it is under Share.
+	await expect(page.getByTestId('view-playlist')).toBeVisible({ timeout });
 	await expect(page.getByTestId('active-playlist-name')).toContainText(name, { timeout });
 	await expect(page.getByTestId('permissions-panel')).toBeAttached({ timeout });
 }
@@ -202,6 +203,7 @@ async function openPlaylistByAddress(page, address) {
 	await page.getByTestId('open-playlist-button').click();
 	const el = page.getByTestId('active-playlist-address');
 	await expect.poll(async () => ((await el.textContent()) ?? '').trim(), { timeout }).toBe(address);
+	await expect(page.getByTestId('view-playlist')).toBeVisible({ timeout });
 }
 
 /**

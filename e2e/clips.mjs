@@ -31,8 +31,13 @@ export async function showView(page, view) {
  */
 export async function openAddClip(page) {
 	if (await page.getByTestId('add-clip-sheet').isVisible()) return;
-	if (!(await page.getByTestId('add-clip-open').isVisible())) await showView(page, 'library');
-	await page.getByTestId('add-clip-open').click();
+	// On a playlist's page from its head; anywhere else, the library's plus.
+	if (await page.getByTestId('view-playlist').isVisible()) {
+		await page.getByTestId('playlist-add-clip').click();
+	} else {
+		await showView(page, 'library');
+		await page.getByTestId('add-clip-open').click();
+	}
 	await expect(page.getByTestId('add-clip-sheet')).toBeVisible();
 }
 
@@ -57,6 +62,8 @@ export async function createPlaylist(page, name) {
 	await expect(page.getByTestId('active-playlist-name')).toContainText(name, { timeout });
 	const address = page.getByTestId('active-playlist-address');
 	await expect(address).toHaveText(/^\s*\/orbitdb\/\w+\s*$/, { timeout });
+	// A new playlist opens on its own page; the name shows a moment earlier.
+	await expect(page.getByTestId('view-playlist')).toBeVisible({ timeout });
 	return ((await address.textContent()) ?? '').trim();
 }
 

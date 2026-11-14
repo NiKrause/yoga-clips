@@ -16,6 +16,7 @@
 		activePlaylistStore,
 		requestedClipStore,
 		removeClip,
+		openPlaylist,
 		playlistDisplayName
 	} from '$lib/clips/store.js';
 	import {
@@ -45,7 +46,7 @@
 	import PlaylistView from '$lib/PlaylistView.svelte';
 	import BottomBar from '$lib/BottomBar.svelte';
 	import { goTo, sectionOf, viewStore } from '$lib/views.js';
-	import { lastClip, rememberLastClip } from '$lib/clips/summaries.js';
+	import { knownClipsStore, lastClip, rememberLastClip } from '$lib/clips/summaries.js';
 	import SharePanel from '$lib/SharePanel.svelte';
 	import PermissionsPanel from '$lib/PermissionsPanel.svelte';
 	import AddClipForm from '$lib/AddClipForm.svelte';
@@ -55,7 +56,7 @@
 	import ClipCinema from '$lib/ClipCinema.svelte';
 	import { parseAppLink } from '$lib/clips/share.js';
 	import TransferPanel from '$lib/TransferPanel.svelte';
-	import PracticeStats from '$lib/PracticeStats.svelte';
+	import PractiseView from '$lib/PractiseView.svelte';
 
 	/** @typedef {'default' | 'success' | 'error' | 'warning'} ToastType */
 	/** @typedef {import('$lib/clips/schema.js').Clip} Clip */
@@ -129,7 +130,13 @@
 		doneLogFor = identityId;
 		doneLog = identityId ? loadDoneLog(identityId) : {};
 	}
-	$: stats = practiceStats(doneLog, $clipsStore);
+	// Minutes count every clip this browser knows, not only the open playlist's.
+	$: stats = practiceStats(doneLog, [
+		...$clipsStore,
+		...Object.entries($knownClipsStore)
+			.filter(([address]) => address !== $activePlaylistStore.address)
+			.flatMap(([, clips]) => clips)
+	]);
 
 	$: filtered = $clipsStore.filter(
 		(clip) =>
@@ -373,6 +380,47 @@
 		}, duration);
 	}
 
+	/**
+	 * A suggestion from Practise plays in its playlist's page; a suggestion
+	 * from another playlist opens that one first, and plays once its clips are
+	 * read.
+	 * @type {{ address: string, clipId: string } | null}
+	 */
+	let pendingPlay = null;
+	$: if (pendingPlay && $activePlaylistStore.address === pendingPlay.address) {
+		const found = $clipsStore.find((clip) => clip.id === pendingPlay?.clipId);
+		if (found) {
+			pendingPlay = null;
+			play(found);
+			goTo('playlist');
+		}
+	}
+
+	/** @param {{ address: string, clip: { id: string } }} pick */
+	async function playFromPractise({ address, clip }) {
+		if (address === $activePlaylistStore.address) {
+			const found = $clipsStore.find((known) => known.id === clip.id);
+			if (found) {
+				play(found);
+				goTo('playlist');
+				return;
+			}
+		}
+		pendingPlay = { address, clipId: clip.id };
+		try {
+			if (address !== $activePlaylistStore.address) await openPlaylist(address);
+		} catch (cause) {
+			pendingPlay = null;
+			showToast(cause instanceof Error ? cause.message : String(cause), 'error', 6000);
+			return;
+		}
+		setTimeout(() => {
+			if (pendingPlay?.clipId !== clip.id) return;
+			pendingPlay = null;
+			showToast($_('player.notFound'), 'warning', 6000);
+		}, DEEP_LINK_PATIENCE_MS);
+	}
+
 	/** @param {Clip} clip */
 	function play(clip) {
 		playing = clip;
@@ -465,7 +513,7 @@
 	/>
 {/if}
 
-<main class="container mx-auto max-w-5xl px-4 pt-4 pb-28 sm:px-6" hidden={cinema}>
+<main class="container mx-auto max-w-5xl px-4 pt-4 pb-44 sm:px-6" hidden={cinema}>
 	<header class="mb-5 flex items-center justify-between gap-3">
 		<div class="flex min-w-0 items-center gap-2">
 			<YogaClipsLogo size={34} label="" />
@@ -530,7 +578,12 @@
 	</div>
 
 	<div hidden={$viewStore !== 'playlist'} data-testid="view-playlist">
-		<PlaylistView onback={() => goTo('library')} onshare={() => goTo('share')} notify={showToast}>
+		<PlaylistView
+			onback={() => goTo('library')}
+			onshare={() => goTo('share')}
+			onadd={() => addSheet?.showModal()}
+			notify={showToast}
+		>
 			<ClipPlayer
 				clip={cinema ? null : playing}
 				playlistAddress={$activePlaylistStore.address}
@@ -567,9 +620,8 @@
 	</div>
 
 	<div hidden={$viewStore !== 'practise'} data-testid="view-practise">
-		<h2 class="mb-3 text-2xl font-semibold text-heading">{$_('nav.practise')}</h2>
 		{#if $initializationStore.isInitialized}
-			<PracticeStats {stats} />
+			<PractiseView {stats} {doneLog} onplay={playFromPractise} />
 		{/if}
 	</div>
 
@@ -606,7 +658,9 @@
 </main>
 
 {#if !cinema && !showModal}
-	{#if $viewStore === 'library' || $viewStore === 'playlist'}
+	<!-- On the library only: on a playlist's page adding sits in its head, so the
+		plus never lies over the player or a row. -->
+	{#if $viewStore === 'library'}
 		<button
 			type="button"
 			class="fixed right-4 bottom-24 z-30 flex h-14 w-14 items-center justify-center rounded-full bg-accent text-3xl leading-none text-accent-ink shadow-lg sm:right-8"

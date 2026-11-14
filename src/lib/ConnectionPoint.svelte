@@ -85,7 +85,7 @@
 
 <button
 	type="button"
-	class="btn btn-ghost btn-sm gap-2"
+	class="btn btn-ghost btn-sm shrink-0 gap-2 whitespace-nowrap"
 	on:click={open}
 	aria-haspopup="dialog"
 	data-testid="connection-point"

@@ -143,7 +143,8 @@
 		"openButton": "Playlist öffnen",
 		"opening": "Wird geöffnet…",
 		"kindOwner": "Deine Playlist",
-		"kindGuest": "Geteilte Playlist"
+		"kindGuest": "Geteilte Playlist",
+		"addClip": "Clip"
 	},
 	"share": {
 		"heading": "Diese Playlist teilen",
@@ -412,5 +413,12 @@
 	"me": {
 		"appearance": "Sprache und Aussehen",
 		"connectionHint": "Der Punkt oben zeigt die Verbindung; dahinter liegen das Netz, die Adresse der Playlist und die technischen Einzelheiten."
+	},
+	"practise": {
+		"question": "Wie viel Zeit hast du?",
+		"minutes": "{minutes} Min.",
+		"alsoFits": "Passt auch",
+		"nothingFits": "In diese Zeit passt kein Clip. Wähl etwas mehr.",
+		"noClips": "Noch keine Clips. Füg in der Bibliothek einen zu einer Playlist hinzu."
 	}
 }

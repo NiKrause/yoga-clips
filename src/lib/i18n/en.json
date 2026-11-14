@@ -143,7 +143,8 @@
 		"openButton": "Open playlist",
 		"opening": "Opening…",
 		"kindOwner": "Your playlist",
-		"kindGuest": "Shared playlist"
+		"kindGuest": "Shared playlist",
+		"addClip": "Clip"
 	},
 	"share": {
 		"heading": "Share this playlist",
@@ -412,5 +413,12 @@
 	"me": {
 		"appearance": "Language and look",
 		"connectionHint": "The dot at the top shows the connection; behind it are the network, the playlist’s address and the technical details."
+	},
+	"practise": {
+		"question": "How much time do you have?",
+		"minutes": "{minutes} min",
+		"alsoFits": "Also fits",
+		"nothingFits": "No clip fits into that time. Choose a little more.",
+		"noClips": "No clips yet. Add one to a playlist in the library."
 	}
 }
