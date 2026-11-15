@@ -54,7 +54,7 @@
 	import ClipGrid from '$lib/ClipGrid.svelte';
 	import ClipPlayer from '$lib/ClipPlayer.svelte';
 	import ClipCinema from '$lib/ClipCinema.svelte';
-	import { parseAppLink } from '$lib/clips/share.js';
+	import { parseAppLink, parseStandaloneClip, withoutClipLink } from '$lib/clips/share.js';
 	import TransferPanel from '$lib/TransferPanel.svelte';
 	import PractiseView from '$lib/PractiseView.svelte';
 
@@ -63,7 +63,33 @@
 
 	const CONSENT_KEY = `consentAccepted@${typeof __APP_VERSION__ !== 'undefined' ? __APP_VERSION__ : '0.0.0'}`;
 	const IDENTITY_MODE_KEY = 'yogaClips.identityMode';
-	const DEEP_LINK_PATIENCE_MS = 20_000;
+	// How long a clip link waits for its clip once the playlist is open (a
+	// guest's copy may still be coming in from the relay), and how long for
+	// the playlist itself before the page says it is taking long.
+	const DEEP_LINK_PATIENCE_MS = 10_000;
+	const PLAYLIST_PATIENCE_MS = 30_000;
+	/** The identity the app ran with last in this browser — only ever set after the notice was accepted. */
+	const LAST_IDENTITY_KEY = 'yogaClips.lastIdentity';
+
+	// A clip link that carries its clip — the yoga-break mod's — plays
+	// without the app starting: no notice, no identity, no relay, no
+	// database. The cinema page is built from the link (share.js), and
+	// nothing is contacted until its start control is pressed. "To the
+	// library" starts the app, notice first.
+	/** @type {ReturnType<typeof parseStandaloneClip>} */
+	let standalone = typeof location === 'undefined' ? null : parseStandaloneClip(location.search);
+	// "Done" needs an identity's log. On the standalone page that is the one
+	// this browser ran the app with last, if it ever did; otherwise "Done" is
+	// left out and the mod's `/yoga done` counts it.
+	const rememberedIdentity = standalone ? readRememberedIdentity() : '';
+
+	function readRememberedIdentity() {
+		try {
+			return localStorage.getItem(LAST_IDENTITY_KEY) ?? '';
+		} catch {
+			return '';
+		}
+	}
 
 	/** @type {'create' | 'existing' | 'anonymous'} */
 	let identityMode = 'anonymous';
@@ -84,7 +110,7 @@
 	/** @type {string | null} */
 	let complainedAbout = null;
 
-	let showModal = true;
+	let showModal = !standalone;
 	let rememberDecision = false;
 
 	// Filters
@@ -123,12 +149,24 @@
 
 	// Done marks, scoped to the identity that is signed in.
 	$: identityId = String($ownDidStore ?? $orbitdbStore?.identity?.id ?? '');
+	$: if (identityId) rememberIdentity(identityId);
+	$: logIdentity = identityId || (standalone ? rememberedIdentity : '');
 	/** @type {import('$lib/clips/done.js').DoneLog} */
 	let doneLog = {};
 	let doneLogFor = '';
-	$: if (identityId !== doneLogFor) {
-		doneLogFor = identityId;
-		doneLog = identityId ? loadDoneLog(identityId) : {};
+	$: if (logIdentity !== doneLogFor) {
+		doneLogFor = logIdentity;
+		doneLog = logIdentity ? loadDoneLog(logIdentity) : {};
+	}
+
+	/** @param {string} id */
+	function rememberIdentity(id) {
+		try {
+			if (localStorage.getItem(LAST_IDENTITY_KEY) !== id)
+				localStorage.setItem(LAST_IDENTITY_KEY, id);
+		} catch {
+			// No storage: the standalone page leaves "Done" to the mod.
+		}
 	}
 	// Minutes count every clip this browser knows, not only the open playlist's.
 	$: stats = practiceStats(doneLog, [
@@ -152,11 +190,24 @@
 	// a service for a thumbnail behind the cinema's back.
 	let cinema = typeof location !== 'undefined' && parseAppLink(location.search).clip !== null;
 	/** @type {Clip | null} */
-	let cinemaClip = null;
+	let cinemaClip = standalone?.clip ?? null;
 	let cinemaMissing = false;
+	/** The playlist itself has not opened yet, long after the link asked for it. */
+	let cinemaSlow = false;
 	/** @type {ReturnType<typeof setTimeout> | null} */
 	let deepLinkTimer = null;
-	$: resolveDeepLink($requestedClipStore, $clipsStore, $initializationStore.isInitialized);
+	/** @type {ReturnType<typeof setTimeout> | null} */
+	let slowTimer = null;
+	// The wait for the clip counts from when the playlist is open and its
+	// clips are read — not from when the whole start is over, which comes
+	// later and, while a playlist is still being fetched, may not come for a
+	// long time. The cinema keeps watching after it has said the clip is not
+	// there: one that arrives late still plays.
+	$: playlistReady =
+		$activePlaylistStore.address !== '' ||
+		$initializationStore.isInitialized ||
+		Boolean($initializationStore.error);
+	$: resolveDeepLink($requestedClipStore, $clipsStore, playlistReady);
 
 	/**
 	 * @param {string | null} wanted
@@ -167,22 +218,44 @@
 		if (!wanted) return;
 		const found = clips.find((clip) => clip.id === wanted);
 		if (found) {
-			if (cinema) cinemaClip = found;
-			else playing = found;
+			if (cinema) {
+				cinemaClip = found;
+				cinemaMissing = false;
+				cinemaSlow = false;
+			} else playing = found;
 			rememberPlayed(found);
 			requestedClipStore.set(null);
-			if (deepLinkTimer) clearTimeout(deepLinkTimer);
-			deepLinkTimer = null;
+			stopDeepLinkTimers();
 			return;
 		}
-		if (deepLinkTimer || !ready) return;
+		if (!ready) {
+			if (cinema && !slowTimer && !cinemaSlow) {
+				slowTimer = setTimeout(() => {
+					slowTimer = null;
+					if ($requestedClipStore && !playlistReady) cinemaSlow = true;
+				}, PLAYLIST_PATIENCE_MS);
+			}
+			return;
+		}
+		cinemaSlow = false;
+		if (deepLinkTimer || cinemaMissing) return;
 		deepLinkTimer = setTimeout(() => {
 			deepLinkTimer = null;
 			if (!$requestedClipStore) return;
+			if (cinema) {
+				cinemaMissing = true;
+				return;
+			}
 			requestedClipStore.set(null);
-			if (cinema) cinemaMissing = true;
-			else showToast($_('player.notFound'), 'warning', 8000);
+			showToast($_('player.notFound'), 'warning', 8000);
 		}, DEEP_LINK_PATIENCE_MS);
+	}
+
+	function stopDeepLinkTimers() {
+		if (deepLinkTimer) clearTimeout(deepLinkTimer);
+		if (slowTimer) clearTimeout(slowTimer);
+		deepLinkTimer = null;
+		slowTimer = null;
 	}
 
 	/**
@@ -201,19 +274,27 @@
 
 	/** Back to the playlist, and to an address that would not come back here. */
 	function leaveCinema() {
+		const wasStandalone = standalone !== null;
+		standalone = null;
 		cinemaAutostart = false;
 		cinema = false;
 		cinemaClip = null;
 		cinemaMissing = false;
+		cinemaSlow = false;
 		requestedClipStore.set(null);
-		if (deepLinkTimer) clearTimeout(deepLinkTimer);
-		deepLinkTimer = null;
-		const url = new URL(location.href);
-		url.searchParams.delete('clip');
+		stopDeepLinkTimers();
+		const url = withoutClipLink(location.href);
 		try {
 			replaceState(url, {});
 		} catch {
 			history.replaceState(history.state, '', url);
+		}
+		// From a clip link that carried its clip, into the app: the notice
+		// first, unless this browser remembers it, and then the playlist the
+		// link named (`?db=`, still in the address).
+		if (wasStandalone) {
+			showModal = true;
+			void startApp();
 		}
 	}
 
@@ -347,6 +428,12 @@
 	}
 
 	onMount(async () => {
+		if (standalone) return;
+		await startApp();
+	});
+
+	/** What a page load does: the notice, or straight on where it is remembered. */
+	async function startApp() {
 		try {
 			const rememberedIdentityMode = localStorage.getItem(IDENTITY_MODE_KEY);
 			if (rememberedIdentityMode === 'passkey') {
@@ -362,7 +449,7 @@
 		} catch {
 			// ignore storage errors
 		}
-	});
+	}
 
 	/**
 	 * @param {string} message
@@ -429,9 +516,9 @@
 
 	/** @param {Clip} clip */
 	function done(clip) {
-		if (!identityId) return;
+		if (!logIdentity) return;
 		doneLog = markDone(doneLog, clip.id);
-		saveDoneLog(identityId, doneLog);
+		saveDoneLog(logIdentity, doneLog);
 		showToast(
 			$_('clip.markedDone', { values: { minutes: Math.round(clip.durationSec / 60) } }),
 			'success'
@@ -440,9 +527,9 @@
 
 	/** @param {Clip} clip */
 	function undo(clip) {
-		if (!identityId) return;
+		if (!logIdentity) return;
 		doneLog = unmarkLast(doneLog, clip.id);
-		saveDoneLog(identityId, doneLog);
+		saveDoneLog(logIdentity, doneLog);
 	}
 
 	/** @param {Clip} clip */
@@ -505,11 +592,14 @@
 	<ClipCinema
 		clip={cinemaClip}
 		missing={cinemaMissing}
-		failure={showModal ? null : error || $initializationStore.error || null}
+		slow={cinemaSlow}
+		failure={showModal || standalone ? null : error || $initializationStore.error || null}
 		doneToday={cinemaClip ? doneToday(doneLog, cinemaClip.id) : false}
 		autostart={cinemaAutostart}
 		ondone={done}
 		onleave={leaveCinema}
+		standalone={standalone !== null}
+		canMarkDone={standalone === null || Boolean(logIdentity)}
 	/>
 {/if}
 

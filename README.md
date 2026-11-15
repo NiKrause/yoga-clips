@@ -10,8 +10,9 @@ chapter: passkey identities and per-DID write permissions.
 The playlist's export is the file the
 [**yoga-break**](https://github.com/NiKrause/yoga-break) mod for Claude Code
 reads from `~/.yoga/clips.json`: while a long tool call runs, the mod suggests
-a clip that fits the wait and opens it — with a playlist link set, in this
-app's cinema page through the `?clip=<id>` deep link.
+a clip that fits the wait and opens it in this app's cinema page, with a
+link that carries the clip itself (below, _Deep link_), so it plays without
+the app starting.
 
 The mod is installed from its own repository:
 
@@ -51,6 +52,21 @@ in Claude Code with the playlist's link, which the panel fills in.
   Vimeo say so, Instagram does not), comes back to that page. Both parameters
   may be combined; every clip link gets the cinema, there is no parameter for
   it.
+- **A clip link that carries its clip.** The yoga-break mod sends
+  `?db=<address>&clip=<id>&url=<the clip's https address>&title=…&teacher=…&sec=…`
+  (`url` required, the rest optional). With a valid `url` the cinema page is
+  built from the link alone and the app does not start: no consent screen,
+  no identity, no relay, no OrbitDB — the page asks nobody for anything, not
+  even this app's own relay, until its start control is pressed, and a line
+  beside the control names the host the press loads the player from. The
+  frame is built from the id found in `url` (YouTube, Vimeo, Instagram), never
+  from the string; any other address gets no frame, only _Open_, with its host
+  shown. `title` and `teacher` are plain text cut at 120 characters, `sec`
+  whole seconds up to an hour. _To the library_ starts the app — consent
+  screen first — with `?db=` kept, so the playlist opens after it. _Done_
+  there counts for the identity this browser last ran the app with; a browser
+  that never did shows no _Done_ and leaves it to the mod's `/yoga done`.
+  Without a valid `url` the link is an ordinary clip link.
 - **clips.json.** _Export_ writes every clip of the open playlist as
   `{ "clips": [ … ] }` in the schema below; _Import_ reads such a file back
   (clips whose id is already there are skipped).
@@ -131,7 +147,8 @@ browser ──libp2p (WebSocket/WebRTC)──▶ orbitdb-relay ◀── another
 - **Networking** is simple-todo's: a relay from
   [NiKrause/orbitdb-relay](https://github.com/NiKrause/orbitdb-relay) for
   discovery and replication, WebRTC between browsers where possible. Nothing
-  dials before the consent screen is accepted.
+  dials before the consent screen is accepted, and a clip link that carries
+  its clip does not start the network at all.
 - **Third parties.** Pasting a YouTube/Vimeo link asks `youtube.com` /
   `vimeo.com` for oEmbed. Pasting a YouTube link also loads YouTube's player
   from `youtube-nocookie.com` in a hidden frame, for the video's length only:
@@ -143,6 +160,9 @@ browser ──libp2p (WebSocket/WebRTC)──▶ orbitdb-relay ◀── another
   loads the embed: `youtube-nocookie.com`, `player.vimeo.com`, or for an
   Instagram clip `www.instagram.com` (which fetches from `cdninstagram.com`
   and `graph.instagram.com`) — none of them before that click. The consent screen says all of this.
+  A clip link that carries its clip is opened without the consent screen;
+  its page loads only from this app's own host until the start control is
+  pressed, and says beside that control which service the press contacts.
 
 ### From simple-todo
 
