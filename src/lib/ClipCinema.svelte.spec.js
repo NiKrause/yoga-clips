@@ -34,7 +34,12 @@ describe('ClipCinema', () => {
 		await view.rerender({ clip: null, missing: true });
 		await expect
 			.element(page.getByTestId('cinema-missing'))
-			.toHaveTextContent('The clip the link points to is not in this playlist.');
+			.toHaveTextContent(/^This clip is not in the playlist: it was removed/);
+
+		await view.rerender({ clip: null, missing: false, slow: true });
+		await expect
+			.element(page.getByTestId('cinema-slow'))
+			.toHaveTextContent(/^The playlist is taking long to arrive/);
 
 		await view.rerender({ clip: null, missing: false, failure: 'The app could not start.' });
 		await expect
@@ -82,6 +87,9 @@ describe('ClipCinema', () => {
 		await expect
 			.element(page.getByTestId('cinema-open-external'))
 			.toHaveAttribute('href', 'https://example.com/video/1');
+		await expect
+			.element(page.getByTestId('cinema-leads-to'))
+			.toHaveTextContent('The button opens example.com in a new tab.');
 		expect(document.querySelector('[data-testid="cinema-start"]')).toBeNull();
 		expect(document.querySelector('iframe')).toBeNull();
 	});
@@ -96,5 +104,38 @@ describe('ClipCinema', () => {
 			.element(page.getByTestId('cinema-open-external'))
 			.toHaveAttribute('href', 'https://www.instagram.com/reel/C0dEexample/');
 		expect(document.querySelector('iframe')).toBeNull();
+	});
+
+	it('from a link that carried the clip: says what the press contacts, leads to the library', async () => {
+		/** @type {string[]} */
+		const happened = [];
+		render(ClipCinema, {
+			clip: clip({ title: '', teacher: '', durationSec: 0 }),
+			standalone: true,
+			canMarkDone: false,
+			onleave: () => happened.push('leave')
+		});
+		const start = page.getByTestId('cinema-start');
+		await expect.element(start).toHaveFocus();
+		await expect.element(start).toHaveAccessibleName('Start A yoga clip in fullscreen');
+		await expect.element(page.getByTestId('cinema-line')).toHaveTextContent(/^YouTube$/);
+		await expect
+			.element(page.getByTestId('cinema-contacts'))
+			.toHaveTextContent(/www\.youtube-nocookie\.com/);
+		await expect
+			.element(page.getByTestId('cinema-done-by-mod'))
+			.toHaveTextContent('To count it as done: /yoga done in Claude.');
+		expect(document.querySelector('[data-testid="cinema-done"]')).toBeNull();
+		expect(document.querySelector('iframe')).toBeNull();
+
+		await page.getByTestId('cinema-back').click();
+		expect(happened).toEqual(['leave']);
+		await expect.element(page.getByTestId('cinema-back')).toHaveTextContent('To the library');
+	});
+
+	it('from a link that carried the clip, with an identity here: "Done" as always', async () => {
+		render(ClipCinema, { clip: clip(), standalone: true, canMarkDone: true });
+		await expect.element(page.getByTestId('cinema-done')).toBeVisible();
+		expect(document.querySelector('[data-testid="cinema-done-by-mod"]')).toBeNull();
 	});
 });

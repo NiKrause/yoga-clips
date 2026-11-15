@@ -80,6 +80,7 @@
 			"readingIsOpen": "Hier ist nichts verschlüsselt. Eine Playlist enthält Links, Titel, Lehrer und Tags - schreib nichts hinein, was du nicht auch an eine gemeinsame Pinnwand heften würdest.",
 			"oembed": "Wenn du einen YouTube- oder Vimeo-Link einfügst, fragt dieser Browser bei youtube.com oder vimeo.com nach Titel, Vorschaubild und, bei Vimeo, der Länge. YouTube nennt die Länge nur über seinen Player. Deshalb wird bei einem YouTube-Link zusätzlich der Player von youtube-nocookie.com geladen, unsichtbar und ohne abzuspielen; der Player holt seine eigenen Teile von weiteren Google-Servern. Darüber hinaus erfahren diese Dienste von dieser App nichts, bevor du auf Abspielen drückst.",
 			"embeds": "Beim Abspielen lädt der Clip von youtube-nocookie.com, player.vimeo.com oder instagram.com, mit allem, was das darüber heißt, dass diese Dienste dich zuschauen sehen. Außer der Abfrage beim Einfügen eines Links lädt vor dem Klick nichts. Ein Instagram-Clip wird über Instagrams eigene Einbettungsseite in einem Rahmen gezeigt; keines ihrer Skripte läuft in der Seite dieser App.",
+			"clipLink": "Ein Clip-Link aus dem yoga-break-Mod trägt den Clip selbst und spielt, ohne dass diese App startet: ohne diesen Hinweis, ohne Identität, ohne Relay. Diese Seite fragt niemanden etwas, bis du „Starten“ drückst, und dann nur den Dienst des Clips (youtube-nocookie.com, player.vimeo.com oder instagram.com). Der Weg von dort zur Bibliothek führt hierher.",
 			"storage": "Deine Playlists und Clips liegen in diesem Browser (IndexedDB), damit sie offline und nach dem Neuladen da sind. Welche Clips du wann absolviert hast, bleibt nur auf diesem Gerät.",
 			"identityPasskey": "Dein Passkey weist dich gegenüber den anderen Geräten aus. Niemand sonst kann in deinem Namen schreiben.",
 			"identityAnonymous": "Du verwendest eine zufällige Identität, die es nur in diesem Browser gibt. Löschst du seinen Speicher, ist sie weg - und mit ihr das Schreibrecht an deinen Playlists.",
@@ -247,7 +248,14 @@
 		"startLabel": "{title} im Vollbild starten",
 		"waiting": "Der Clip wird aus der Playlist geholt…",
 		"fullscreen": "Vollbild",
-		"back": "Zur Playlist"
+		"back": "Zur Playlist",
+		"untitled": "Ein Yoga-Clip",
+		"toLibrary": "Zur Bibliothek",
+		"contacts": "„Starten“ lädt den Player von {host}; der Dienst sieht dann, dass du zuschaust. Vorher wurde dort und anderswo nichts abgefragt.",
+		"leadsTo": "Der Knopf öffnet {host} in einem neuen Tab.",
+		"doneByMod": "Als absolviert zählen: /yoga done in Claude.",
+		"notFound": "Dieser Clip ist nicht in der Playlist: Er wurde entfernt oder nie hinzugefügt. Der Weg zurück führt zur Playlist.",
+		"slow": "Die Playlist braucht lange. Sie lädt im Hintergrund weiter; der Weg zurück zeigt, was schon da ist."
 	},
 	"yogaBreak": {
 		"what": "ein Mod für Claude Code, der einen Clip aus dieser Playlist vorschlägt, während Claude an etwas Langem arbeitet. So richtest du ihn ein:",

@@ -76,6 +76,7 @@
 			get(_)('consent.clause.readingIsOpen'),
 			get(_)('consent.clause.oembed'),
 			get(_)('consent.clause.embeds'),
+			get(_)('consent.clause.clipLink'),
 			get(_)('consent.clause.storage'),
 			state.identity === 'anonymous'
 				? get(_)('consent.clause.identityAnonymous')
