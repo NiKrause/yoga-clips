@@ -33,6 +33,9 @@ test('an Instagram clip asks nothing of Instagram before the click, and its embe
 
 	const card = clipCard(page, 'Wrist warm-up');
 	await expect(card).toHaveAttribute('data-source', 'instagram');
+	// The day it was posted is read from the link's code (the 4th or the 5th,
+	// by the reader's time zone).
+	await expect(card.getByTestId('clip-card-posted')).toHaveText(/^posted Dec [45], 2023$/);
 	// Pasted, added, on screen as a card — and Instagram has heard nothing.
 	expect(asked).toEqual([]);
 

@@ -211,6 +211,7 @@
 		"addedByYou": "von dir hinzugefügt",
 		"addedByOther": "von jemand anderem hinzugefügt",
 		"playing": "läuft gerade",
+		"posted": "gepostet am {date}",
 		"listHeading": "In dieser Playlist · {count, plural, one {# Clip} other {# Clips}}"
 	},
 	"filter": {

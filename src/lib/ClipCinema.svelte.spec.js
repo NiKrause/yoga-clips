@@ -100,6 +100,11 @@ describe('ClipCinema', () => {
 		});
 		await expect.element(page.getByTestId('cinema-start')).toBeVisible();
 		await expect.element(page.getByTestId('cinema-instagram-hint')).toBeVisible();
+		// The day it was posted is in the link's code; nobody is asked for it.
+		// The 4th or the 5th, by the time zone of whoever reads it.
+		await expect
+			.element(page.getByTestId('cinema-line'))
+			.toHaveTextContent(/^Example Teacher · 5:00 · Instagram · posted Dec [45], 2023$/);
 		await expect
 			.element(page.getByTestId('cinema-open-external'))
 			.toHaveAttribute('href', 'https://www.instagram.com/reel/C0dEexample/');
