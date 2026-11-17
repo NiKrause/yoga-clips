@@ -35,6 +35,10 @@ in Claude Code with the playlist's link, which the panel fills in.
   and without playing. Whatever is prefilled can be overwritten, and a service
   that does not answer leaves the field to be typed, as for Instagram and any
   other link. Teachers autocomplete from the playlist.
+- **See when an Instagram clip was posted.** The code in an Instagram link is
+  the post's id, and the id begins with the moment it was made. The app reads
+  the date from there: no request, nobody asked, and nothing added to the
+  stored clip.
 - **Find one.** Grid of cards, filtered by teacher, tag, and "I have N minutes".
 - **Play it.** YouTube and Vimeo play inline, from `youtube-nocookie.com` and
   `player.vimeo.com`; the player you watch in loads only after the click. An

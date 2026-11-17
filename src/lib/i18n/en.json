@@ -211,6 +211,7 @@
 		"addedByYou": "added by you",
 		"addedByOther": "added by someone else",
 		"playing": "playing now",
+		"posted": "posted {date}",
 		"listHeading": "In this playlist · {count, plural, one {# clip} other {# clips}}"
 	},
 	"filter": {

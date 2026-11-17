@@ -4,7 +4,8 @@
 	// Nothing from the clip's service loads before the row is on screen (the
 	// thumbnail, lazily) and nothing plays before a press.
 	import { onMount } from 'svelte';
-	import { _ } from '$lib/i18n/index.js';
+	import { _, locale } from '$lib/i18n/index.js';
+	import { formatPosted, postedAt } from './clips/posted.js';
 	import { formatDuration, parseClipUrl } from './clips/schema.js';
 	import { thumbnailFor } from './clips/thumbnails.js';
 
@@ -41,6 +42,8 @@
 	// Plays in the player (YouTube, Vimeo, an Instagram post or reel), or is
 	// only a link to open.
 	$: embeddable = Boolean(parseClipUrl(clip.url)?.embedUrl);
+	// When the clip was posted, where its link says so: Instagram's does.
+	$: posted = postedAt(clip.url);
 </script>
 
 <li
@@ -107,6 +110,11 @@
 			{#if author}
 				<span data-testid="clip-card-author" data-did={clip.addedBy}
 					>{author === 'you' ? $_('clip.addedByYou') : $_('clip.addedByOther')}</span
+				>
+			{/if}
+			{#if posted}
+				<span data-testid="clip-card-posted"
+					>{$_('clip.posted', { values: { date: formatPosted(posted, $locale) } })}</span
 				>
 			{/if}
 			<span data-testid="clip-done-count"

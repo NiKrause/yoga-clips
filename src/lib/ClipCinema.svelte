@@ -19,7 +19,8 @@
 	// the page says beside the start control which service the press
 	// contacts, and the way back leads into the library, where the notice is.
 	import { onMount, tick } from 'svelte';
-	import { _ } from '$lib/i18n/index.js';
+	import { _, locale } from '$lib/i18n/index.js';
+	import { formatPosted, postedAt } from './clips/posted.js';
 	import { formatDuration, parseClipUrl } from './clips/schema.js';
 	import ClipFrame from './ClipFrame.svelte';
 
@@ -71,8 +72,15 @@
 	$: instagram = clip?.source === 'instagram';
 	$: sourceName = clip ? $_(`source.${clip.source}`) : '';
 	$: title = clip ? clip.title || $_('cinema.untitled') : '';
+	/** When the clip was posted, where its link says so: Instagram's does. */
+	$: posted = clip ? postedAt(clip.url) : null;
 	$: line = clip
-		? [clip.teacher, clip.durationSec > 0 ? formatDuration(clip.durationSec) : '', sourceName]
+		? [
+				clip.teacher,
+				clip.durationSec > 0 ? formatDuration(clip.durationSec) : '',
+				sourceName,
+				posted ? $_('clip.posted', { values: { date: formatPosted(posted, $locale) } }) : ''
+			]
 				.filter(Boolean)
 				.join(' · ')
 		: '';
