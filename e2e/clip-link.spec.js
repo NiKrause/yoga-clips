@@ -127,8 +127,11 @@ test('a clip link from the mod counts "Done" where this browser has an identity,
 
 	const origin = new URL(String(baseURL)).origin;
 	const fresh = await context.newPage();
-	const wire = await watchTheWire(fresh, context, origin);
+	// The first page is closed before the wire is watched: the watch covers the
+	// whole context, and that page's own relay health check could otherwise
+	// land in it while the page is still open.
 	await page.close();
+	const wire = await watchTheWire(fresh, context, origin);
 
 	await fresh.goto(MOD_LINK);
 	await expect(fresh.getByTestId('cinema-start')).toBeVisible();
