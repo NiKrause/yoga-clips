@@ -10,7 +10,7 @@ import { webRTCDirect } from '@libp2p/webrtc';
 import { webSockets } from '@libp2p/websockets';
 import { multiaddr } from '@multiformats/multiaddr';
 import { createLibp2p } from 'libp2p';
-import { resolveBootstrapMultiaddrs } from '../src/lib/bootstrap-multiaddrs.js';
+import { resolveBootstrapCandidates } from '../src/lib/bootstrap-multiaddrs.js';
 
 const PROBE_TIMEOUT_MS = Number(process.env.RELAY_BOOTSTRAP_PROBE_TIMEOUT_MS || 10_000);
 
@@ -100,30 +100,50 @@ const registrationIds = process.env.RELAY_BOOTSTRAP_REGISTRATION_ID?.trim()
 // does not turn into a long dial list in every browser.
 const MAX_BAKED = Number(process.env.RELAY_BOOTSTRAP_MAX_BAKED || 6);
 
-let resolution = resolveBootstrapMultiaddrs({ override, fallback });
-if (resolution.source !== 'override') {
+// Every usable source in precedence order (override, Aleph discovery, then the
+// configured fallback). Discovery spans the whole production relay set, and
+// runs unless an override is already given.
+let candidates = resolveBootstrapCandidates({ override, fallback });
+if (!candidates.some((candidate) => candidate.source === 'override')) {
 	const discovered = await discoverScopedBootstrapMultiaddrs({ profile, registrationIds });
-	resolution = resolveBootstrapMultiaddrs({ override, discovered, fallback });
+	candidates = resolveBootstrapCandidates({ override, discovered, fallback });
 }
 
-if (resolution.addresses.length === 0) {
+if (candidates.length === 0) {
 	throw new Error(
 		'No valid browser-dialable Aleph bootstrap multiaddresses were discovered and no valid override or fallback was configured.'
 	);
 }
 
-const probeResults = await verifyBootstrapMultiaddrs(resolution.addresses);
-resolution = {
-	...resolution,
-	addresses: probeResults
-		.filter((result) => result.reachable)
-		.map((result) => result.address)
-		.slice(0, MAX_BAKED)
-};
+// Probe the sources in turn and bake the first that answers, capped so a large
+// healthy pool does not become a long dial list in every browser. A discovered
+// production relay that is resolvable but down falls through to the configured
+// fallback instead of failing the deploy.
+const probeResults = [];
+const attempts = [];
+let resolution = null;
+for (const candidate of candidates) {
+	const results = await verifyBootstrapMultiaddrs(candidate.addresses);
+	probeResults.push(...results);
+	const reachable = results.filter((result) => result.reachable).map((result) => result.address);
+	attempts.push(`${candidate.source} ${reachable.length}/${candidate.addresses.length}`);
+	if (reachable.length > 0) {
+		resolution = { addresses: reachable.slice(0, MAX_BAKED), source: candidate.source };
+		if (candidate.source !== candidates[0].source) {
+			console.log(
+				`↪ ${candidates[0].source} had no reachable relay; fell through to ${candidate.source}.`
+			);
+		}
+		break;
+	}
+	console.log(
+		`✗ ${candidate.source}: none of ${candidate.addresses.length} address(es) reachable; trying the next source.`
+	);
+}
 
-if (resolution.addresses.length === 0) {
+if (!resolution) {
 	throw new Error(
-		`None of the ${probeResults.length} resolved bootstrap multiaddresses passed ping or the dial fallback.`
+		`None of the ${probeResults.length} resolved bootstrap multiaddresses passed ping or the dial fallback (tried: ${attempts.join(', ')}).`
 	);
 }
 
