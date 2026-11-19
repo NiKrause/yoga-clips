@@ -16,6 +16,8 @@
 		activePlaylistStore,
 		requestedClipStore,
 		removeClip,
+		canWriteTo,
+		moveOrCopyClip,
 		openPlaylist,
 		playlistDisplayName
 	} from '$lib/clips/store.js';
@@ -48,6 +50,8 @@
 	import { goTo, sectionOf, viewStore } from '$lib/views.js';
 	import { knownClipsStore, lastClip, rememberLastClip } from '$lib/clips/summaries.js';
 	import SharePanel from '$lib/SharePanel.svelte';
+	import MoveCopyDialog from '$lib/MoveCopyDialog.svelte';
+	import { listRegistryStore } from '$lib/list-registry.js';
 	import PermissionsPanel from '$lib/PermissionsPanel.svelte';
 	import AddClipForm from '$lib/AddClipForm.svelte';
 	import ClipFilters from '$lib/ClipFilters.svelte';
@@ -532,6 +536,44 @@
 		saveDoneLog(logIdentity, doneLog);
 	}
 
+	/**
+	 * The clip a person is about to move or copy, and whether it may leave
+	 * this playlist.
+	 * @type {{ clip: Clip, canMove: boolean } | null}
+	 */
+	let relocating = null;
+	$: hasOtherPlaylists = $listRegistryStore.some(
+		(entry) => entry.address && entry.address !== $activePlaylistStore.address
+	);
+
+	/**
+	 * @param {string} address the target playlist
+	 * @param {'copy' | 'move'} mode
+	 * @returns {Promise<string | void>} what went wrong, for the dialog to say
+	 */
+	async function relocate(address, mode) {
+		if (!relocating) return;
+		const entry = $listRegistryStore.find((known) => known.address === address);
+		const playlist = playlistDisplayName(entry?.name ?? '') || $_('playlist.unnamed');
+		const result = await moveOrCopyClip(relocating.clip, address, mode);
+		if (result.ok) {
+			relocating = null;
+			showToast(
+				$_(mode === 'move' ? 'relocate.moved' : 'relocate.copied', { values: { playlist } }),
+				'success'
+			);
+			return;
+		}
+		if (result.kind === 'duplicate') return $_('relocate.duplicate', { values: { playlist } });
+		if (result.kind === 'denied') return $_('relocate.denied', { values: { playlist } });
+		if (result.kind === 'notRemoved') {
+			return result.reason === 'denied'
+				? $_('relocate.notRemovedDenied', { values: { playlist } })
+				: $_('relocate.notRemoved', { values: { playlist, reason: result.message } });
+		}
+		return $_('relocate.failed', { values: { playlist, reason: result.message } });
+	}
+
 	/** @param {Clip} clip */
 	async function remove(clip) {
 		const result = await removeClip(clip.id);
@@ -704,6 +746,8 @@
 					ondone={done}
 					onundo={undo}
 					onremove={remove}
+					{hasOtherPlaylists}
+					onmovecopy={(clip, canMove) => (relocating = { clip, canMove })}
 				/>
 			{/if}
 		</PlaylistView>
@@ -787,6 +831,16 @@
 		}}
 	/>
 </dialog>
+
+<MoveCopyDialog
+	clip={relocating?.clip ?? null}
+	canMove={relocating?.canMove ?? false}
+	sourceAddress={$activePlaylistStore.address}
+	entries={$listRegistryStore}
+	check={canWriteTo}
+	onchoose={relocate}
+	onclose={() => (relocating = null)}
+/>
 
 <!-- The relay's sponsor button floats where the plus and the bottom bar are; it lives on Me. -->
 {#if SponsorRelayFab && !cinema && $viewStore === 'me'}

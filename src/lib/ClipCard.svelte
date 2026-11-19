@@ -14,6 +14,8 @@
 	export let doneToday = false;
 	export let doneCount = 0;
 	export let canRemove = false;
+	/** Whether there is another playlist this clip could go to. */
+	export let canMoveOrCopy = false;
 	/** The clip playing in the player above. */
 	export let current = false;
 	/**
@@ -30,6 +32,8 @@
 	export let onundo = () => {};
 	/** @type {(clip: import('./clips/schema.js').Clip) => void} */
 	export let onremove = () => {};
+	/** @type {(clip: import('./clips/schema.js').Clip) => void} */
+	export let onmovecopy = () => {};
 
 	/** @type {string | null} */
 	let thumbnail = null;
@@ -146,6 +150,14 @@
 				data-testid="clip-open-link"
 				>{$_('clip.openOn', { values: { source: $_(`source.${clip.source}`) } })}</a
 			>
+			{#if canMoveOrCopy}
+				<button
+					type="button"
+					on:click={() => onmovecopy(clip)}
+					class="underline hover:text-heading"
+					data-testid="clip-move-copy">{$_('relocate.action')}</button
+				>
+			{/if}
 			{#if canRemove}
 				<button
 					type="button"

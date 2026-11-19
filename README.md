@@ -74,6 +74,15 @@ in Claude Code with the playlist's link, which the panel fills in.
 - **clips.json.** _Export_ writes every clip of the open playlist as
   `{ "clips": [ … ] }` in the schema below; _Import_ reads such a file back
   (clips whose id is already there are skipped).
+- **Move or copy a clip.** From a clip's row, into another playlist you can
+  write to: one of your own, or one whose owner let you in. The app asks each
+  playlist's access controller rather than assuming "mine". A copy leaves the
+  clip where it is. A move writes it into the other playlist first and removes
+  it here only after that, so a move that fails halfway leaves the clip in
+  both, never in none. It stays the same clip (same `id`, so your done marks
+  stand in both playlists); `addedAt` and `addedBy` say when and by whom it
+  came into the playlist it is in. A playlist that already has the clip, or
+  another entry with the same link, is not written to.
 - **Share.** A playlist is shared by link or QR code. Anyone with the address
   can read it; writing needs the owner to add the friend's DID under _Write
   permissions_ — and the owner can take it back.

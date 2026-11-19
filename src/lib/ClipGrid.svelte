@@ -22,12 +22,28 @@
 	export let onundo = () => {};
 	/** @type {(clip: Clip) => void} */
 	export let onremove = () => {};
+	/** Whether this identity knows another playlist a clip could go to. */
+	export let hasOtherPlaylists = false;
+	/**
+	 * Move or copy a clip; `canMove` says whether it may leave this playlist.
+	 * @type {(clip: Clip, canMove: boolean) => void}
+	 */
+	export let onmovecopy = () => {};
 	import { doneToday, doneCount } from './clips/done.js';
 
 	// Who added a clip is worth a word only where more than one person adds
 	// to the playlist: someone else's playlist, or one with someone else's
 	// clips in it. Never as a raw identity.
 	$: shared = !isOwner || clips.some((clip) => clip.addedBy !== identityId);
+
+	/**
+	 * The owner may remove any clip; everyone else only what they added.
+	 * @param {Clip} clip
+	 * @param {boolean} owner
+	 * @param {string} identity
+	 */
+	const mayRemove = (clip, owner, identity) =>
+		owner || (Boolean(identity) && clip.addedBy === identity);
 </script>
 
 <section class="mt-4" data-testid="clip-grid">
@@ -42,7 +58,8 @@
 					current={clip.id === currentId}
 					doneToday={doneToday(doneLog, clip.id)}
 					doneCount={doneCount(doneLog, clip.id)}
-					canRemove={isOwner || (Boolean(identityId) && clip.addedBy === identityId)}
+					canRemove={mayRemove(clip, isOwner, identityId)}
+					canMoveOrCopy={hasOtherPlaylists}
 					author={shared
 						? Boolean(identityId) && clip.addedBy === identityId
 							? 'you'
@@ -52,6 +69,7 @@
 					{ondone}
 					{onundo}
 					{onremove}
+					onmovecopy={(moving) => onmovecopy(moving, mayRemove(moving, isOwner, identityId))}
 				/>
 			{/each}
 		</ul>
