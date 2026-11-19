@@ -161,7 +161,13 @@ jobs:
           # When discovery finds nothing (the registration lapsed, Aleph's API
           # is down), the production relay's known address is still probed and
           # baked if it answers. Same address as in .env.example.
-          RELAY_BOOTSTRAP_FALLBACK: /dns4/crazy-pluck-uncle-device.2n6.me/tcp/443/tls/ws/p2p/12D3KooWQu5E1ZkGC5x2dSVTEWxYvsssWjXgk2Mzc8GZHN26cYzS
+          # Last-resort relay, used only when discovery of the production relay
+          # (relay-main-ekb) finds nothing reachable. The previous value
+          # (crazy-pluck-uncle-device.2n6.me) was gone from the channel and its
+          # 2n6 route dead. This one was live and reachable on 2026-11-19; both
+          # its 2n6 and libp2p.direct forms are listed for redundancy. Replace it
+          # if it rotates — the durable fix is relay-main-ekb being up.
+          RELAY_BOOTSTRAP_FALLBACK: /dns4/ocean-skate-resource-route.2n6.me/tcp/443/tls/ws/p2p/12D3KooWLaah6yFW7ohFEZgsDNpH86xtmpztvamgyoLvLMtNyfpR,/ip4/45.11.229.162/tcp/24048/tls/sni/45-11-229-162.k51qzi5uqu5dk62hih7mv5h3db2mntwwg9v3rxnxjzq73ijceevtayzfop9h1i.libp2p.direct/ws/p2p/12D3KooWLaah6yFW7ohFEZgsDNpH86xtmpztvamgyoLvLMtNyfpR
         run: node scripts/resolve-aleph-bootstrap.mjs
 
       - name: Build
@@ -172,7 +178,7 @@ jobs:
 
       - name: Install isolated Aleph deploy tooling
         if: steps.key.outputs.deploy == 'true' && (github.event_name == 'push' || github.event_name == 'workflow_dispatch')
-        run: npm install --prefix /tmp/le-space-deployer @le-space/node@0.12.4 --ignore-scripts
+        run: npm install --prefix /tmp/le-space-deployer @le-space/node@0.12.10 --ignore-scripts
 
       - name: Publish to Aleph IPFS
         if: steps.key.outputs.deploy == 'true' && (github.event_name == 'push' || github.event_name == 'workflow_dispatch')
@@ -223,7 +229,7 @@ jobs:
       - run: pnpm install --frozen-lockfile
 
       - name: Install isolated Aleph deploy tooling
-        run: npm install --prefix /tmp/le-space-deployer @le-space/node@0.12.4 --ignore-scripts
+        run: npm install --prefix /tmp/le-space-deployer @le-space/node@0.12.10 --ignore-scripts
 
       - name: Link custom domain
         if: inputs.domain != '' || env.ALEPH_MAIN_SITE_DOMAIN != ''
