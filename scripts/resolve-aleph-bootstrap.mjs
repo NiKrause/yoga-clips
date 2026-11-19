@@ -1,7 +1,10 @@
 import { appendFile } from 'node:fs/promises';
 import { noise } from '@chainsafe/libp2p-noise';
 import { yamux } from '@chainsafe/libp2p-yamux';
-import { discoverScopedBootstrapMultiaddrs } from '../src/lib/aleph-bootstrap-discovery.js';
+import {
+	DEFAULT_REGISTRATION_IDS,
+	discoverScopedBootstrapMultiaddrs
+} from '../src/lib/aleph-bootstrap-discovery.js';
 import { ping } from '@libp2p/ping';
 import { webRTCDirect } from '@libp2p/webrtc';
 import { webSockets } from '@libp2p/websockets';
@@ -83,17 +86,23 @@ const fallback = process.env.RELAY_BOOTSTRAP_FALLBACK?.trim() || '';
 // browsers cannot form a shared circuit with (a `uc-go-peer` relay leaves two
 // orbitdb browsers stuck at `candidates: 0`).
 const profile = process.env.RELAY_BOOTSTRAP_PROFILE?.trim() || 'orbitdb-relay';
-// Bake only the production registration into the site bundle: ephemeral E2E
-// and smoke relays (`relay:<profile>:smoke-orbitdb-relay-*`) may be alive
-// during a build, pass the ping probe, and then become permanent dial noise
-// for every visitor once their VM is erased (simple-todo #84). The production
-// relay is `relay-main-ekb` (see src/lib/aleph-bootstrap-discovery.js).
-const registrationId =
-	process.env.RELAY_BOOTSTRAP_REGISTRATION_ID?.trim() || 'relay:orbitdb-relay:relay-main-ekb';
+// Discover the whole production relay set, not a single pinned relay, so that
+// one relay going down neither fails the build nor bakes a dead address into
+// every visitor's bundle. Ephemeral E2E and smoke relays
+// (`relay:<profile>:smoke-orbitdb-relay-*`, `…:simple-todo-e2e-*`) register
+// under other ids and are left out; `maxAgeMs` in discovery drops anything
+// that stopped republishing, so widening the set does not bring corpses back.
+// A single id can still be forced with RELAY_BOOTSTRAP_REGISTRATION_ID.
+const registrationIds = process.env.RELAY_BOOTSTRAP_REGISTRATION_ID?.trim()
+	? [process.env.RELAY_BOOTSTRAP_REGISTRATION_ID.trim()]
+	: DEFAULT_REGISTRATION_IDS;
+// At most this many reachable addresses are baked, so a large healthy pool
+// does not turn into a long dial list in every browser.
+const MAX_BAKED = Number(process.env.RELAY_BOOTSTRAP_MAX_BAKED || 6);
 
 let resolution = resolveBootstrapMultiaddrs({ override, fallback });
 if (resolution.source !== 'override') {
-	const discovered = await discoverScopedBootstrapMultiaddrs({ profile, registrationId });
+	const discovered = await discoverScopedBootstrapMultiaddrs({ profile, registrationIds });
 	resolution = resolveBootstrapMultiaddrs({ override, discovered, fallback });
 }
 
@@ -106,7 +115,10 @@ if (resolution.addresses.length === 0) {
 const probeResults = await verifyBootstrapMultiaddrs(resolution.addresses);
 resolution = {
 	...resolution,
-	addresses: probeResults.filter((result) => result.reachable).map((result) => result.address)
+	addresses: probeResults
+		.filter((result) => result.reachable)
+		.map((result) => result.address)
+		.slice(0, MAX_BAKED)
 };
 
 if (resolution.addresses.length === 0) {

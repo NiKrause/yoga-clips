@@ -12,7 +12,10 @@ import * as dagJson from '@ipld/dag-json';
 import * as json from 'multiformats/codecs/json';
 import { sha512 } from 'multiformats/hashes/sha2';
 import { multiaddr } from '@multiformats/multiaddr';
-import { createLibp2pConfig } from './libp2p-config.js';
+import { createLibp2pConfig, getRelayBootstrapAddrs } from './libp2p-config.js';
+import { isDevelopment } from './relay-bootstrap-addrs.js';
+import { freshRelaysFrom, healRelayConnection } from './relay-selfheal.js';
+import { discoverScopedBootstrapMultiaddrs } from './aleph-bootstrap-discovery.js';
 import {
 	initializeDatabase,
 	playlistAddressStore,
@@ -200,6 +203,7 @@ export async function initializeP2P(options = /** @type {{ passkeyCredential?: a
 		discoveredPeers.clear();
 		setupPubsubDiscoveryAutoDial();
 		setupAutomaticRelayReservations();
+		startRelaySelfHeal();
 
 		// Create Helia (IPFS) instance
 		setInitializationProgress(2);
@@ -484,6 +488,34 @@ function setupPubsubDiscoveryAutoDial() {
  * reservation may be created. Explicitly reserve one connected HOP relay so
  * AddressManager can advertise a browser-dialable circuit/WebRTC address.
  */
+/**
+ * If the baked relays never connect — the bundle outlived its relay — discover
+ * the current production relay set and dial one. Best-effort; failures stay in
+ * the console and never touch startup. See relay-selfheal.js.
+ */
+function startRelaySelfHeal() {
+	// Only in production: dev and E2E use a fixed local relay, and discovery
+	// against the Aleph channel has no place in a test.
+	if (isDevelopment) return;
+	const baked = getRelayBootstrapAddrs();
+	const bakedPeerIds = new Set(
+		baked.map((address) => extractPeerIdFromMultiaddr(address)).filter(Boolean)
+	);
+	void healRelayConnection({
+		hasRelayConnection: () =>
+			(libp2p?.getConnections?.() ?? []).some((/** @type {any} */ connection) =>
+				bakedPeerIds.has(connection.remotePeer?.toString())
+			),
+		discover: async () => freshRelaysFrom(baked, await discoverScopedBootstrapMultiaddrs()),
+		dial: async (address) => {
+			if (!libp2p) throw new Error('libp2p is gone');
+			await libp2p.dial(multiaddr(address), { signal: createDialTimeoutSignal() });
+		},
+		wait: (ms) => new Promise((resolve) => setTimeout(resolve, ms)),
+		log: (message) => console.log(message)
+	}).catch((error) => console.warn('relay self-heal crashed:', error));
+}
+
 function setupAutomaticRelayReservations() {
 	if (!libp2p) return;
 
