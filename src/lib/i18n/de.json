@@ -228,6 +228,25 @@
 		"upTo": "bis {minutes} Min.",
 		"more": "Filter"
 	},
+	"relocate": {
+		"action": "Verschieben oder kopieren…",
+		"heading": "Clip verschieben oder kopieren",
+		"target": "In welche Playlist?",
+		"checking": "Suche Playlists, in die du Clips legen darfst…",
+		"none": "Es gibt keine andere Playlist, in die du Clips legen darfst. Lege zuerst in der Bibliothek eine an.",
+		"copy": "Kopieren",
+		"move": "Verschieben",
+		"cancel": "Abbrechen",
+		"working": "Wird geschrieben…",
+		"moveNotAllowed": "Du kannst diesen Clip kopieren. Verschieben kann ihn nur, wem die Playlist gehört oder wer den Clip hinzugefügt hat.",
+		"copied": "Nach „{playlist}“ kopiert",
+		"moved": "Nach „{playlist}“ verschoben",
+		"duplicate": "„{playlist}“ enthält diesen Clip schon. Es wurde nichts geschrieben.",
+		"denied": "Du darfst in „{playlist}“ keine Clips hinzufügen.",
+		"failed": "Das Schreiben in „{playlist}“ ist fehlgeschlagen: {reason}",
+		"notRemoved": "Der Clip liegt jetzt in „{playlist}“, konnte aus dieser Playlist aber nicht entfernt werden: {reason}",
+		"notRemovedDenied": "Der Clip liegt jetzt in „{playlist}“, du darfst ihn aus dieser Playlist aber nicht entfernen."
+	},
 	"transfer": {
 		"heading": "Vorschläge in Claude",
 		"hint": "Der Mod yoga-break für Claude Code schlägt einen Clip aus dieser Playlist vor, während Claude an etwas Langem arbeitet. Er liest die Playlist aus einer Datei, clips.json: Hier exportierst du sie oder importierst eine zurück.",

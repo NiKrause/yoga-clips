@@ -228,6 +228,25 @@
 		"upTo": "up to {minutes} min",
 		"more": "Filter"
 	},
+	"relocate": {
+		"action": "Move or copy…",
+		"heading": "Move or copy this clip",
+		"target": "Into which playlist?",
+		"checking": "Looking for playlists you can add clips to…",
+		"none": "There is no other playlist you can add clips to. Create one in the library first.",
+		"copy": "Copy",
+		"move": "Move",
+		"cancel": "Cancel",
+		"working": "Writing…",
+		"moveNotAllowed": "You can copy this clip. Only the playlist’s owner, or whoever added the clip, can move it out of here.",
+		"copied": "Copied to “{playlist}”",
+		"moved": "Moved to “{playlist}”",
+		"duplicate": "“{playlist}” already has this clip. Nothing was written.",
+		"denied": "You may not add clips to “{playlist}”.",
+		"failed": "Writing to “{playlist}” failed: {reason}",
+		"notRemoved": "The clip is now in “{playlist}”, but it could not be removed from this playlist: {reason}",
+		"notRemovedDenied": "The clip is now in “{playlist}”, but you may not remove it from this playlist."
+	},
 	"transfer": {
 		"heading": "Suggestions in Claude",
 		"hint": "The yoga-break mod for Claude Code suggests a clip from this playlist while Claude works on something long. It reads the playlist from a file, clips.json: export it here, or import one back.",
