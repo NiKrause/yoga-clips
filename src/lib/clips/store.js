@@ -2,8 +2,11 @@ import { writable, derived, get } from 'svelte/store';
 import { Documents, OrbitDBAccessController } from '@orbitdb/core';
 import { rememberList, listRegistryStore, openListRegistry } from '../list-registry.js';
 import { relayHttpStatusStore } from '../relay-status.js';
+import { canWrite, moveOrCopy } from './move-copy.js';
 import { createClip, toExportDocument, validateClip } from './schema.js';
 import { parseAppLink } from './share.js';
+import { rememberSummary } from './summaries.js';
+export { playlistDisplayName } from './names.js';
 
 /**
  * The playlists: one OrbitDB *documents* database per playlist, one document
@@ -49,6 +52,16 @@ export const activePlaylistStore = writable(
 );
 export const clipsStore = writable(/** @type {Clip[]} */ ([]));
 export const clipsCountStore = derived(clipsStore, ($clips) => $clips.length);
+/**
+ * The address of the playlist whose clips clipsStore holds: set when they are
+ * loaded, cleared when another playlist opens. Until the new one's clips are
+ * read, clipsStore still holds the old ones, and a summary must not take them
+ * for the new playlist's.
+ */
+const clipsAddressStore = writable('');
+derived([clipsStore, clipsAddressStore], (pair) => pair).subscribe(([clips, address]) => {
+	if (address && address === get(playlistAddressStore)) rememberSummary(address, clips);
+});
 
 /**
  * The clip a link asked for (`?clip=<id>`), until the player has shown it.
@@ -85,6 +98,7 @@ function addressOf(db) {
  */
 function setActivePlaylist(db, meta) {
 	const address = addressOf(db);
+	clipsAddressStore.set('');
 	playlistDBStore.set(db);
 	playlistAddressStore.set(address);
 	activePlaylistStore.set({ kind: meta.kind, name: meta.name ?? '', address });
@@ -229,6 +243,7 @@ async function loadSnapshot() {
 			.map((record) => validateClip(record.value))
 			.flatMap((result) => (result.ok ? [result.clip] : []));
 		clipsStore.set(sortClips(clips));
+		clipsAddressStore.set(addressOf(db));
 		const pending = entriesReceivedDuringLoad;
 		entriesReceivedDuringLoad = [];
 		for (const entry of pending) applyEntry(entry, false);
@@ -275,8 +290,14 @@ function applyEntry(entry, trackDuringLoad = true) {
 function setupListeners(db) {
 	if (observedDatabases.has(db)) return;
 	observedDatabases.add(db);
-	db.events.on('join', () => void loadClips());
+	// A playlist stays open after another one became the active one, and a
+	// clip copied or moved into it is an update there. Only the active
+	// playlist's events may reach the list on screen.
+	db.events.on('join', () => {
+		if (get(playlistDBStore) === db) void loadClips();
+	});
 	db.events.on('update', (...args) => {
+		if (get(playlistDBStore) !== db) return;
 		const entry = args.find((value) => value?.payload);
 		if (!applyEntry(entry)) void loadClips();
 	});
@@ -296,8 +317,10 @@ function setupListeners(db) {
  * at all, leaves the write exactly as valid.
  *
  * @param {PlaylistDatabase} db
+ * @param {{ evenIfNotActive?: boolean }} [options] for the target of a move
+ *   or copy, which is open but not the playlist on screen
  */
-function nudgeReplication(db) {
+function nudgeReplication(db, { evenIfNotActive = false } = {}) {
 	const { origin } = get(relayHttpStatusStore);
 	const dbAddress = addressOf(db);
 	void (async () => {
@@ -315,7 +338,8 @@ function nudgeReplication(db) {
 					.finally(() => clearTimeout(timeout));
 			}
 			await new Promise((resolve) => setTimeout(resolve, 250));
-			if (get(playlistDBStore) === db && db.sync?.stop && db.sync.start) {
+			const current = evenIfNotActive || get(playlistDBStore) === db;
+			if (current && db.sync?.stop && db.sync.start) {
 				await db.sync.stop();
 				await db.sync.start();
 			}
@@ -396,6 +420,149 @@ export async function removeClip(id) {
 			kind: writeErrorKind(error),
 			message: error instanceof Error ? error.message : String(error)
 		};
+	}
+}
+
+/** How long the question "may I write here" waits for a playlist to open. */
+const WRITE_CHECK_PATIENCE_MS = 8000;
+
+/**
+ * @template T
+ * @param {Promise<T>} promise
+ * @param {number} ms
+ * @returns {Promise<T>}
+ */
+function withPatience(promise, ms) {
+	/** @type {ReturnType<typeof setTimeout> | undefined} */
+	let timer;
+	const late = new Promise((_, reject) => {
+		timer = setTimeout(() => reject(new Error(`No answer within ${ms} ms.`)), ms);
+	});
+	return /** @type {Promise<T>} */ (Promise.race([promise, late])).finally(() =>
+		clearTimeout(timer)
+	);
+}
+
+/**
+ * Open a playlist without making it the one on screen: the target of a move
+ * or copy. OrbitDB hands back the open database where it has one.
+ *
+ * @param {string} address
+ * @returns {Promise<PlaylistDatabase>}
+ */
+async function openBeside(address) {
+	const orbitdb = get(orbitdbStore);
+	if (!orbitdb) throw new Error('OrbitDB is not initialized yet.');
+	if (!address.startsWith('/orbitdb/')) {
+		throw new Error('A playlist address starts with "/orbitdb/".');
+	}
+	return /** @type {PlaylistDatabase} */ (await orbitdb.open(address, playlistOptions()));
+}
+
+/**
+ * May this identity write to that playlist? Asked of the playlist's access
+ * controller, not of the registry's "owner": the answer is the same question
+ * OrbitDB asks at the write, so a playlist somebody else owns and has let
+ * this identity into is a yes, and one's own would be a no once its owner
+ * took the right away.
+ *
+ * A playlist that does not open in time is a no for now: it cannot be
+ * written to either.
+ *
+ * @param {string} address
+ * @param {{ patienceMs?: number }} [options]
+ */
+export async function canWriteTo(address, { patienceMs = WRITE_CHECK_PATIENCE_MS } = {}) {
+	const identityId = String(get(orbitdbStore)?.identity?.id ?? '');
+	if (!identityId) return false;
+	try {
+		const db = await withPatience(openBeside(address), patienceMs);
+		const access = db.access;
+		const capabilities =
+			typeof access?.capabilities === 'function'
+				? await withPatience(Promise.resolve(access.capabilities()), patienceMs)
+				: { write: access?.write };
+		return canWrite(capabilities, identityId);
+	} catch (error) {
+		console.warn('Could not ask whether a playlist is writable:', error);
+		return false;
+	}
+}
+
+/**
+ * Copy a clip of the active playlist into another one, or move it there.
+ * What travels and in which order things are written: `move-copy.js`.
+ *
+ * @param {Clip} clip
+ * @param {string} targetAddress
+ * @param {'copy' | 'move'} mode
+ * @returns {Promise<
+ *   | { ok: true, mode: 'copy' | 'move' }
+ *   | { ok: false, kind: 'duplicate' }
+ *   | { ok: false, kind: 'denied' | 'failed', message: string }
+ *   | { ok: false, kind: 'notRemoved', reason: 'denied' | 'failed', message: string }
+ * >}
+ */
+export async function moveOrCopyClip(clip, targetAddress, mode) {
+	const source = get(playlistDBStore);
+	const identityId = String(get(orbitdbStore)?.identity?.id ?? '');
+	if (!source || !identityId) return { ok: false, kind: 'failed', message: 'No playlist is open.' };
+	if (targetAddress === addressOf(source)) {
+		return { ok: false, kind: 'failed', message: 'The clip is in that playlist.' };
+	}
+
+	/** @type {PlaylistDatabase} */
+	let target;
+	try {
+		target = await openBeside(targetAddress);
+	} catch (error) {
+		console.error('Error opening the target playlist:', error);
+		return { ok: false, kind: 'failed', message: messageOf(error) };
+	}
+
+	const result = await moveOrCopy({ mode, clip, source, target, identityId });
+	if (result.written) {
+		nudgeReplication(target, { evenIfNotActive: true });
+		void rememberTargetSummary(target);
+	}
+	if (result.ok) {
+		if (mode === 'move') nudgeReplication(source);
+		return { ok: true, mode };
+	}
+	if (result.kind === 'duplicate') return { ok: false, kind: 'duplicate' };
+	console.error(`Error on ${mode} of a clip:`, result.error);
+	if (result.kind === 'notRemoved') {
+		return {
+			ok: false,
+			kind: 'notRemoved',
+			reason: writeErrorKind(result.error),
+			message: messageOf(result.error)
+		};
+	}
+	return { ok: false, kind: writeErrorKind(result.error), message: messageOf(result.error) };
+}
+
+/** @param {unknown} error */
+function messageOf(error) {
+	return error instanceof Error ? error.message : String(error);
+}
+
+/**
+ * The library's tile of a playlist says how many clips it has, from what this
+ * browser last saw. After a write into a playlist that is not on screen, that
+ * is read here.
+ *
+ * @param {PlaylistDatabase} target
+ */
+async function rememberTargetSummary(target) {
+	try {
+		const records = await readRecent(target);
+		const clips = records
+			.map((record) => validateClip(record.value))
+			.flatMap((result) => (result.ok ? [result.clip] : []));
+		rememberSummary(addressOf(target), sortClips(clips));
+	} catch (error) {
+		console.warn('Could not read the target playlist after the write:', error);
 	}
 }
 

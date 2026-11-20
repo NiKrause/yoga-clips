@@ -13,8 +13,14 @@
 	// Leaving fullscreen, or the player saying the clip is over, comes back
 	// here — to "Done" — and not to the list. The page is dark in both
 	// themes: it is a cinema, not a view of the app.
+	//
+	// `standalone`: the clip came with the link (the yoga-break mod's), and
+	// the app has not started — this visitor may not have seen the notice. So
+	// the page says beside the start control which service the press
+	// contacts, and the way back leads into the library, where the notice is.
 	import { onMount, tick } from 'svelte';
-	import { _ } from '$lib/i18n/index.js';
+	import { _, locale } from '$lib/i18n/index.js';
+	import { formatPosted, postedAt } from './clips/posted.js';
 	import { formatDuration, parseClipUrl } from './clips/schema.js';
 	import ClipFrame from './ClipFrame.svelte';
 
@@ -22,6 +28,8 @@
 	export let clip = null;
 	/** The clip did not turn up in the playlist. */
 	export let missing = false;
+	/** The playlist itself has not opened yet, a long while after the link asked. */
+	export let slow = false;
 	/** Why the app could not start, if it could not. @type {string | null} */
 	export let failure = null;
 	export let doneToday = false;
@@ -29,6 +37,20 @@
 	export let ondone = () => {};
 	/** Back to the playlist. @type {() => void} */
 	export let onleave = () => {};
+	/**
+	 * Start at once: the cinema was opened by a press on "Fullscreen", which is
+	 * the gesture fullscreen and sound need. A clip link waits for its own press.
+	 */
+	export let autostart = false;
+	/** The clip came with the link and the app has not started. */
+	export let standalone = false;
+	/** Whether "Done" can be written here: it needs an identity's log. */
+	export let canMarkDone = true;
+	let autostarted = false;
+	$: if (autostart && !autostarted && clip && playable) {
+		autostarted = true;
+		start();
+	}
 
 	/** @type {HTMLDivElement | null} */
 	let stage = null;
@@ -49,9 +71,32 @@
 	$: playable = Boolean(parsed?.embedUrl);
 	$: instagram = clip?.source === 'instagram';
 	$: sourceName = clip ? $_(`source.${clip.source}`) : '';
+	$: title = clip ? clip.title || $_('cinema.untitled') : '';
+	/** When the clip was posted, where its link says so: Instagram's does. */
+	$: posted = clip ? postedAt(clip.url) : null;
 	$: line = clip
-		? [clip.teacher, formatDuration(clip.durationSec), sourceName].filter(Boolean).join(' · ')
+		? [
+				clip.teacher,
+				clip.durationSec > 0 ? formatDuration(clip.durationSec) : '',
+				sourceName,
+				posted ? $_('clip.posted', { values: { date: formatPosted(posted, $locale) } }) : ''
+			]
+				.filter(Boolean)
+				.join(' · ')
 		: '';
+	/** Where the start control's press goes, said before it. */
+	$: playerHost = parsed?.embedUrl ? new URL(parsed.embedUrl).hostname : '';
+	/** Where the "open" button goes, said beside it: a link cannot pass one site off as another. */
+	$: linkHost = clip ? hostOf(clip.url) : '';
+
+	/** @param {string} url */
+	function hostOf(url) {
+		try {
+			return new URL(url).hostname;
+		} catch {
+			return '';
+		}
+	}
 	// Focus lands on the start control once, when there is one — not again
 	// each time the playlist behind it changes.
 	$: if (startControl && !greeted) {
@@ -138,7 +183,7 @@
 
 <section
 	class="fixed inset-0 z-40 flex flex-col bg-black text-white"
-	aria-label={clip?.title ?? $_('cinema.waiting')}
+	aria-label={clip ? title : $_('cinema.waiting')}
 	data-testid="cinema"
 	data-started={started}
 	data-fullscreen={fullscreen}
@@ -152,24 +197,34 @@
 			<p
 				class="max-w-md px-6 text-center text-sm text-white/80"
 				role="status"
-				data-testid={failure || missing ? 'cinema-missing' : 'cinema-waiting'}
+				data-testid={failure || missing
+					? 'cinema-missing'
+					: slow
+						? 'cinema-slow'
+						: 'cinema-waiting'}
 			>
-				{failure ?? (missing ? $_('player.notFound') : $_('cinema.waiting'))}
+				{failure ??
+					(missing ? $_('cinema.notFound') : slow ? $_('cinema.slow') : $_('cinema.waiting'))}
 			</p>
 		{:else if started && parsed && playable}
 			<ClipFrame
 				{parsed}
-				title={clip.title}
+				{title}
 				onended={playerEnded}
 				frameClass={instagram ? 'h-full w-full max-w-[32rem] bg-white' : 'h-full w-full'}
 			/>
 		{:else if playable}
+			<!-- The page exists for this one control. Without `autofocus` SvelteKit's
+			     focus reset after the first navigation takes the focus back
+			     when the page opens straight on it (a link that carries its clip). -->
+			<!-- svelte-ignore a11y_autofocus -->
 			<button
 				type="button"
+				autofocus
 				bind:this={startControl}
 				on:click={start}
 				class="group flex flex-col items-center gap-4 rounded-2xl px-10 py-8 text-white outline-offset-4 focus-visible:outline-2 focus-visible:outline-white"
-				aria-label={$_('cinema.startLabel', { values: { title: clip.title } })}
+				aria-label={$_('cinema.startLabel', { values: { title } })}
 				data-testid="cinema-start"
 			>
 				<span
@@ -178,9 +233,22 @@
 				>
 				<span class="text-lg font-medium">{$_('cinema.start')}</span>
 			</button>
+			{#if standalone && !started}
+				<p
+					class="absolute right-0 bottom-4 left-0 mx-auto max-w-md px-6 text-center text-xs text-white/70"
+					data-testid="cinema-contacts"
+				>
+					{$_('cinema.contacts', { values: { host: playerHost } })}
+				</p>
+			{/if}
 		{:else}
 			<div class="flex flex-col items-center gap-4 px-6 text-center">
 				<p class="max-w-md text-sm text-white/80">{$_('player.otherHint')}</p>
+				{#if linkHost}
+					<p class="max-w-md text-sm break-all text-white" data-testid="cinema-leads-to">
+						{$_('cinema.leadsTo', { values: { host: linkHost } })}
+					</p>
+				{/if}
 				<a
 					href={clip.url}
 					target="_blank"
@@ -198,7 +266,7 @@
 		<div class="min-w-0 flex-1 basis-56">
 			{#if clip}
 				<h1 class="truncate text-sm font-medium text-white" data-testid="cinema-title">
-					{clip.title}
+					{title}
 				</h1>
 				<p class="truncate text-xs text-white/60" data-testid="cinema-line">
 					{line}
@@ -233,7 +301,11 @@
 					{$_('cinema.fullscreen')}
 				</button>
 			{/if}
-			{#if doneToday}
+			{#if !canMarkDone}
+				<span class="text-xs text-white/70" data-testid="cinema-done-by-mod"
+					>{$_('cinema.doneByMod')}</span
+				>
+			{:else if doneToday}
 				<span
 					class="rounded-md bg-identity-500/20 px-3 py-1.5 text-sm font-medium text-identity-200"
 					data-testid="cinema-done-today">✓ {$_('clip.doneToday')}</span
@@ -257,7 +329,7 @@
 			class="rounded-md border border-white/25 px-3 py-1.5 text-sm text-white hover:bg-white/10"
 			data-testid="cinema-back"
 		>
-			{$_('cinema.back')}
+			{standalone ? $_('cinema.toLibrary') : $_('cinema.back')}
 		</button>
 	</footer>
 </section>

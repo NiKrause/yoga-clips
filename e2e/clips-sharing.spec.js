@@ -1,5 +1,6 @@
 import { test, expect } from '@playwright/test';
 import { passConsent } from './consent.mjs';
+import { openAddClip, showView } from './clips.mjs';
 import { CLIP_FIELDS, SOURCES } from '../src/lib/clips/schema.js';
 
 // The whole story in one run: Alice registers a passkey, creates a playlist,
@@ -165,17 +166,20 @@ async function openReadyAppWithNewPasskey(page, { label }) {
 async function createPlaylist(page, name) {
 	await page.getByTestId('new-playlist-name').fill(name);
 	await page.getByTestId('new-playlist-create').click();
-	// The permissions panel only renders for access-controlled playlists —
-	// which is all of them here.
-	await expect(page.getByTestId('permissions-panel')).toBeVisible({ timeout });
-	await expect(page.getByTestId('active-playlist-name')).toContainText(name);
+	// A new playlist opens on its own page; who may add to it is under Share.
+	await expect(page.getByTestId('view-playlist')).toBeVisible({ timeout });
+	await expect(page.getByTestId('active-playlist-name')).toContainText(name, { timeout });
+	await expect(page.getByTestId('permissions-panel')).toBeAttached({ timeout });
 }
 
 /** @param {import('@playwright/test').Page} page */
 async function getOwnDid(page) {
+	// The identity is under Me (NiKrause/yoga-clips#1, step 4).
+	await showView(page, 'me');
 	const badge = page.getByTestId('own-did-value');
 	await expect(badge).toBeVisible({ timeout });
 	const did = await badge.getAttribute('data-did');
+	await showView(page, 'playlist');
 	if (!did) throw new Error('own DID badge has no data-did');
 	return did;
 }
@@ -199,6 +203,7 @@ async function openPlaylistByAddress(page, address) {
 	await page.getByTestId('open-playlist-button').click();
 	const el = page.getByTestId('active-playlist-address');
 	await expect.poll(async () => ((await el.textContent()) ?? '').trim(), { timeout }).toBe(address);
+	await expect(page.getByTestId('view-playlist')).toBeVisible({ timeout });
 }
 
 /**
@@ -206,12 +211,14 @@ async function openPlaylistByAddress(page, address) {
  * @param {string} did
  */
 async function grantWriteAccess(page, did) {
+	await showView(page, 'share');
 	await page.getByTestId('permissions-panel').locator('summary').click();
 	await page.getByTestId('permission-did-input').fill(did);
 	await page.getByTestId('permission-add').click();
 	await expect(page.locator(`[data-testid="permission-entry"][data-did="${did}"]`)).toBeVisible({
 		timeout
 	});
+	await showView(page, 'playlist');
 }
 
 /**
@@ -219,6 +226,7 @@ async function grantWriteAccess(page, did) {
  * @param {{ url: string, title: string, teacher: string, duration: string, tags: string }} clip
  */
 async function fillClip(page, clip) {
+	await openAddClip(page);
 	await page.getByTestId('clip-url').fill(clip.url);
 	// oEmbed may fill the title from the network; what the test types wins.
 	await page.getByTestId('clip-title').fill(clip.title);
@@ -245,9 +253,13 @@ async function addClipOk(page, clip) {
 async function addClipExpectDenied(page, clip) {
 	await fillClip(page, clip);
 	await page.getByTestId('clip-add').click();
-	await expect(page.getByTestId('clip-error')).toContainText(/write permission|Schreibrecht/, {
-		timeout
-	});
+	// The refusal in the words people use (NiKrause/yoga-clips#1, step 3).
+	await expect(page.getByTestId('clip-error')).toContainText(
+		/may not add clips|darfst .* keine Clips/,
+		{
+			timeout
+		}
+	);
 }
 
 /**
@@ -276,6 +288,8 @@ async function expectNoClip(page, title) {
  * @returns {Promise<{ clips: Record<string, any>[] }>}
  */
 async function readExport(page) {
+	// The export is under Me, in "Suggestions in Claude".
+	await showView(page, 'me');
 	const downloadPromise = page.waitForEvent('download');
 	await page.getByTestId('export-clips').click();
 	const download = await downloadPromise;

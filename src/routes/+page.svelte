@@ -15,7 +15,11 @@
 		tagsStore,
 		activePlaylistStore,
 		requestedClipStore,
-		removeClip
+		removeClip,
+		canWriteTo,
+		moveOrCopyClip,
+		openPlaylist,
+		playlistDisplayName
 	} from '$lib/clips/store.js';
 	import {
 		loadDoneLog,
@@ -31,6 +35,8 @@
 	import ThemeToggle from '$lib/ThemeToggle.svelte';
 	import LanguageSwitcher from '$lib/LanguageSwitcher.svelte';
 	import YogaClipsLogo from '$lib/YogaClipsLogo.svelte';
+	import ConnectionPoint from '$lib/ConnectionPoint.svelte';
+	import PlaylistAddress from '$lib/PlaylistAddress.svelte';
 	import ToastNotification from '$lib/ToastNotification.svelte';
 	import P2PStatusNav from '$lib/P2PStatusNav.svelte';
 	import ErrorAlert from '$lib/ErrorAlert.svelte';
@@ -38,24 +44,56 @@
 	import PeerIdCard from '$lib/PeerIdCard.svelte';
 	import OwnMultiaddrs from '$lib/OwnMultiaddrs.svelte';
 	import ManualConnectForm from '$lib/ManualConnectForm.svelte';
-	import PlaylistPanel from '$lib/PlaylistPanel.svelte';
+	import Library from '$lib/Library.svelte';
+	import PlaylistView from '$lib/PlaylistView.svelte';
+	import BottomBar from '$lib/BottomBar.svelte';
+	import { goTo, sectionOf, viewStore } from '$lib/views.js';
+	import { knownClipsStore, lastClip, rememberLastClip } from '$lib/clips/summaries.js';
 	import SharePanel from '$lib/SharePanel.svelte';
+	import MoveCopyDialog from '$lib/MoveCopyDialog.svelte';
+	import { listRegistryStore } from '$lib/list-registry.js';
 	import PermissionsPanel from '$lib/PermissionsPanel.svelte';
 	import AddClipForm from '$lib/AddClipForm.svelte';
 	import ClipFilters from '$lib/ClipFilters.svelte';
 	import ClipGrid from '$lib/ClipGrid.svelte';
 	import ClipPlayer from '$lib/ClipPlayer.svelte';
 	import ClipCinema from '$lib/ClipCinema.svelte';
-	import { parseAppLink } from '$lib/clips/share.js';
+	import { parseAppLink, parseStandaloneClip, withoutClipLink } from '$lib/clips/share.js';
 	import TransferPanel from '$lib/TransferPanel.svelte';
-	import PracticeStats from '$lib/PracticeStats.svelte';
+	import PractiseView from '$lib/PractiseView.svelte';
 
 	/** @typedef {'default' | 'success' | 'error' | 'warning'} ToastType */
 	/** @typedef {import('$lib/clips/schema.js').Clip} Clip */
 
 	const CONSENT_KEY = `consentAccepted@${typeof __APP_VERSION__ !== 'undefined' ? __APP_VERSION__ : '0.0.0'}`;
 	const IDENTITY_MODE_KEY = 'yogaClips.identityMode';
-	const DEEP_LINK_PATIENCE_MS = 20_000;
+	// How long a clip link waits for its clip once the playlist is open (a
+	// guest's copy may still be coming in from the relay), and how long for
+	// the playlist itself before the page says it is taking long.
+	const DEEP_LINK_PATIENCE_MS = 10_000;
+	const PLAYLIST_PATIENCE_MS = 30_000;
+	/** The identity the app ran with last in this browser — only ever set after the notice was accepted. */
+	const LAST_IDENTITY_KEY = 'yogaClips.lastIdentity';
+
+	// A clip link that carries its clip — the yoga-break mod's — plays
+	// without the app starting: no notice, no identity, no relay, no
+	// database. The cinema page is built from the link (share.js), and
+	// nothing is contacted until its start control is pressed. "To the
+	// library" starts the app, notice first.
+	/** @type {ReturnType<typeof parseStandaloneClip>} */
+	let standalone = typeof location === 'undefined' ? null : parseStandaloneClip(location.search);
+	// "Done" needs an identity's log. On the standalone page that is the one
+	// this browser ran the app with last, if it ever did; otherwise "Done" is
+	// left out and the mod's `/yoga done` counts it.
+	const rememberedIdentity = standalone ? readRememberedIdentity() : '';
+
+	function readRememberedIdentity() {
+		try {
+			return localStorage.getItem(LAST_IDENTITY_KEY) ?? '';
+		} catch {
+			return '';
+		}
+	}
 
 	/** @type {'create' | 'existing' | 'anonymous'} */
 	let identityMode = 'anonymous';
@@ -76,7 +114,7 @@
 	/** @type {string | null} */
 	let complainedAbout = null;
 
-	let showModal = true;
+	let showModal = !standalone;
 	let rememberDecision = false;
 	// The consent dialog's simple/technical toggle, lifted here so the identity
 	// chooser in its slot follows the same view.
@@ -91,16 +129,59 @@
 	/** @type {Clip | null} */
 	let playing = null;
 
+	// What the library knows without opening every playlist: each one's clips
+	// and minutes from when it was last open here, and the clip played last.
+	let last = typeof localStorage === 'undefined' ? null : lastClip();
+	$: continueClip =
+		last && last.playlist === $activePlaylistStore.address
+			? ($clipsStore.find((clip) => clip.id === last?.clip) ?? null)
+			: null;
+
+	/** @param {Clip} clip */
+	function rememberPlayed(clip) {
+		if (!$activePlaylistStore.address) return;
+		last = { playlist: $activePlaylistStore.address, clip: clip.id };
+		rememberLastClip(last);
+	}
+
+	/** The add-a-clip sheet, opened by the plus. @type {HTMLDialogElement | null} */
+	let addSheet = null;
+
+	$: navItems = [
+		{ id: 'library', label: $_('nav.library'), href: '#library', icon: 'library' },
+		{ id: 'practise', label: $_('nav.practise'), href: '#practise', icon: 'practise' },
+		{ id: 'share', label: $_('nav.share'), href: '#share', icon: 'share' },
+		{ id: 'me', label: $_('nav.me'), href: '#me', icon: 'me' }
+	];
+
 	// Done marks, scoped to the identity that is signed in.
 	$: identityId = String($ownDidStore ?? $orbitdbStore?.identity?.id ?? '');
+	$: if (identityId) rememberIdentity(identityId);
+	$: logIdentity = identityId || (standalone ? rememberedIdentity : '');
 	/** @type {import('$lib/clips/done.js').DoneLog} */
 	let doneLog = {};
 	let doneLogFor = '';
-	$: if (identityId !== doneLogFor) {
-		doneLogFor = identityId;
-		doneLog = identityId ? loadDoneLog(identityId) : {};
+	$: if (logIdentity !== doneLogFor) {
+		doneLogFor = logIdentity;
+		doneLog = logIdentity ? loadDoneLog(logIdentity) : {};
 	}
-	$: stats = practiceStats(doneLog, $clipsStore);
+
+	/** @param {string} id */
+	function rememberIdentity(id) {
+		try {
+			if (localStorage.getItem(LAST_IDENTITY_KEY) !== id)
+				localStorage.setItem(LAST_IDENTITY_KEY, id);
+		} catch {
+			// No storage: the standalone page leaves "Done" to the mod.
+		}
+	}
+	// Minutes count every clip this browser knows, not only the open playlist's.
+	$: stats = practiceStats(doneLog, [
+		...$clipsStore,
+		...Object.entries($knownClipsStore)
+			.filter(([address]) => address !== $activePlaylistStore.address)
+			.flatMap(([, clips]) => clips)
+	]);
 
 	$: filtered = $clipsStore.filter(
 		(clip) =>
@@ -116,11 +197,24 @@
 	// a service for a thumbnail behind the cinema's back.
 	let cinema = typeof location !== 'undefined' && parseAppLink(location.search).clip !== null;
 	/** @type {Clip | null} */
-	let cinemaClip = null;
+	let cinemaClip = standalone?.clip ?? null;
 	let cinemaMissing = false;
+	/** The playlist itself has not opened yet, long after the link asked for it. */
+	let cinemaSlow = false;
 	/** @type {ReturnType<typeof setTimeout> | null} */
 	let deepLinkTimer = null;
-	$: resolveDeepLink($requestedClipStore, $clipsStore, $initializationStore.isInitialized);
+	/** @type {ReturnType<typeof setTimeout> | null} */
+	let slowTimer = null;
+	// The wait for the clip counts from when the playlist is open and its
+	// clips are read — not from when the whole start is over, which comes
+	// later and, while a playlist is still being fetched, may not come for a
+	// long time. The cinema keeps watching after it has said the clip is not
+	// there: one that arrives late still plays.
+	$: playlistReady =
+		$activePlaylistStore.address !== '' ||
+		$initializationStore.isInitialized ||
+		Boolean($initializationStore.error);
+	$: resolveDeepLink($requestedClipStore, $clipsStore, playlistReady);
 
 	/**
 	 * @param {string | null} wanted
@@ -131,37 +225,83 @@
 		if (!wanted) return;
 		const found = clips.find((clip) => clip.id === wanted);
 		if (found) {
-			if (cinema) cinemaClip = found;
-			else playing = found;
+			if (cinema) {
+				cinemaClip = found;
+				cinemaMissing = false;
+				cinemaSlow = false;
+			} else playing = found;
+			rememberPlayed(found);
 			requestedClipStore.set(null);
-			if (deepLinkTimer) clearTimeout(deepLinkTimer);
-			deepLinkTimer = null;
+			stopDeepLinkTimers();
 			return;
 		}
-		if (deepLinkTimer || !ready) return;
+		if (!ready) {
+			if (cinema && !slowTimer && !cinemaSlow) {
+				slowTimer = setTimeout(() => {
+					slowTimer = null;
+					if ($requestedClipStore && !playlistReady) cinemaSlow = true;
+				}, PLAYLIST_PATIENCE_MS);
+			}
+			return;
+		}
+		cinemaSlow = false;
+		if (deepLinkTimer || cinemaMissing) return;
 		deepLinkTimer = setTimeout(() => {
 			deepLinkTimer = null;
 			if (!$requestedClipStore) return;
+			if (cinema) {
+				cinemaMissing = true;
+				return;
+			}
 			requestedClipStore.set(null);
-			if (cinema) cinemaMissing = true;
-			else showToast($_('player.notFound'), 'warning', 8000);
+			showToast($_('player.notFound'), 'warning', 8000);
 		}, DEEP_LINK_PATIENCE_MS);
 	}
 
+	function stopDeepLinkTimers() {
+		if (deepLinkTimer) clearTimeout(deepLinkTimer);
+		if (slowTimer) clearTimeout(slowTimer);
+		deepLinkTimer = null;
+		slowTimer = null;
+	}
+
+	/**
+	 * "Fullscreen" by the player: the cinema page for this clip, started at
+	 * once — the press that asked for it is the gesture fullscreen needs.
+	 * @param {Clip} clip
+	 */
+	function openCinema(clip) {
+		cinemaAutostart = true;
+		cinemaClip = clip;
+		cinemaMissing = false;
+		cinema = true;
+		playing = null;
+	}
+	let cinemaAutostart = false;
+
 	/** Back to the playlist, and to an address that would not come back here. */
 	function leaveCinema() {
+		const wasStandalone = standalone !== null;
+		standalone = null;
+		cinemaAutostart = false;
 		cinema = false;
 		cinemaClip = null;
 		cinemaMissing = false;
+		cinemaSlow = false;
 		requestedClipStore.set(null);
-		if (deepLinkTimer) clearTimeout(deepLinkTimer);
-		deepLinkTimer = null;
-		const url = new URL(location.href);
-		url.searchParams.delete('clip');
+		stopDeepLinkTimers();
+		const url = withoutClipLink(location.href);
 		try {
 			replaceState(url, {});
 		} catch {
 			history.replaceState(history.state, '', url);
+		}
+		// From a clip link that carried its clip, into the app: the notice
+		// first, unless this browser remembers it, and then the playlist the
+		// link named (`?db=`, still in the address).
+		if (wasStandalone) {
+			showModal = true;
+			void startApp();
 		}
 	}
 
@@ -295,6 +435,12 @@
 	}
 
 	onMount(async () => {
+		if (standalone) return;
+		await startApp();
+	});
+
+	/** What a page load does: the notice, or straight on where it is remembered. */
+	async function startApp() {
 		try {
 			const rememberedIdentityMode = localStorage.getItem(IDENTITY_MODE_KEY);
 			if (rememberedIdentityMode === 'passkey') {
@@ -310,7 +456,7 @@
 		} catch {
 			// ignore storage errors
 		}
-	});
+	}
 
 	/**
 	 * @param {string} message
@@ -328,16 +474,58 @@
 		}, duration);
 	}
 
+	/**
+	 * A suggestion from Practise plays in its playlist's page; a suggestion
+	 * from another playlist opens that one first, and plays once its clips are
+	 * read.
+	 * @type {{ address: string, clipId: string } | null}
+	 */
+	let pendingPlay = null;
+	$: if (pendingPlay && $activePlaylistStore.address === pendingPlay.address) {
+		const found = $clipsStore.find((clip) => clip.id === pendingPlay?.clipId);
+		if (found) {
+			pendingPlay = null;
+			play(found);
+			goTo('playlist');
+		}
+	}
+
+	/** @param {{ address: string, clip: { id: string } }} pick */
+	async function playFromPractise({ address, clip }) {
+		if (address === $activePlaylistStore.address) {
+			const found = $clipsStore.find((known) => known.id === clip.id);
+			if (found) {
+				play(found);
+				goTo('playlist');
+				return;
+			}
+		}
+		pendingPlay = { address, clipId: clip.id };
+		try {
+			if (address !== $activePlaylistStore.address) await openPlaylist(address);
+		} catch (cause) {
+			pendingPlay = null;
+			showToast(cause instanceof Error ? cause.message : String(cause), 'error', 6000);
+			return;
+		}
+		setTimeout(() => {
+			if (pendingPlay?.clipId !== clip.id) return;
+			pendingPlay = null;
+			showToast($_('player.notFound'), 'warning', 6000);
+		}, DEEP_LINK_PATIENCE_MS);
+	}
+
 	/** @param {Clip} clip */
 	function play(clip) {
 		playing = clip;
+		rememberPlayed(clip);
 	}
 
 	/** @param {Clip} clip */
 	function done(clip) {
-		if (!identityId) return;
+		if (!logIdentity) return;
 		doneLog = markDone(doneLog, clip.id);
-		saveDoneLog(identityId, doneLog);
+		saveDoneLog(logIdentity, doneLog);
 		showToast(
 			$_('clip.markedDone', { values: { minutes: Math.round(clip.durationSec / 60) } }),
 			'success'
@@ -346,9 +534,47 @@
 
 	/** @param {Clip} clip */
 	function undo(clip) {
-		if (!identityId) return;
+		if (!logIdentity) return;
 		doneLog = unmarkLast(doneLog, clip.id);
-		saveDoneLog(identityId, doneLog);
+		saveDoneLog(logIdentity, doneLog);
+	}
+
+	/**
+	 * The clip a person is about to move or copy, and whether it may leave
+	 * this playlist.
+	 * @type {{ clip: Clip, canMove: boolean } | null}
+	 */
+	let relocating = null;
+	$: hasOtherPlaylists = $listRegistryStore.some(
+		(entry) => entry.address && entry.address !== $activePlaylistStore.address
+	);
+
+	/**
+	 * @param {string} address the target playlist
+	 * @param {'copy' | 'move'} mode
+	 * @returns {Promise<string | void>} what went wrong, for the dialog to say
+	 */
+	async function relocate(address, mode) {
+		if (!relocating) return;
+		const entry = $listRegistryStore.find((known) => known.address === address);
+		const playlist = playlistDisplayName(entry?.name ?? '') || $_('playlist.unnamed');
+		const result = await moveOrCopyClip(relocating.clip, address, mode);
+		if (result.ok) {
+			relocating = null;
+			showToast(
+				$_(mode === 'move' ? 'relocate.moved' : 'relocate.copied', { values: { playlist } }),
+				'success'
+			);
+			return;
+		}
+		if (result.kind === 'duplicate') return $_('relocate.duplicate', { values: { playlist } });
+		if (result.kind === 'denied') return $_('relocate.denied', { values: { playlist } });
+		if (result.kind === 'notRemoved') {
+			return result.reason === 'denied'
+				? $_('relocate.notRemovedDenied', { values: { playlist } })
+				: $_('relocate.notRemoved', { values: { playlist, reason: result.message } });
+		}
+		return $_('relocate.failed', { values: { playlist, reason: result.message } });
 	}
 
 	/** @param {Clip} clip */
@@ -416,107 +642,216 @@
 	<ClipCinema
 		clip={cinemaClip}
 		missing={cinemaMissing}
-		failure={showModal ? null : error || $initializationStore.error || null}
+		slow={cinemaSlow}
+		failure={showModal || standalone ? null : error || $initializationStore.error || null}
 		doneToday={cinemaClip ? doneToday(doneLog, cinemaClip.id) : false}
+		autostart={cinemaAutostart}
 		ondone={done}
 		onleave={leaveCinema}
+		standalone={standalone !== null}
+		canMarkDone={standalone === null || Boolean(logIdentity)}
 	/>
 {/if}
 
-<main class="container mx-auto max-w-5xl p-4 sm:p-6" hidden={cinema}>
-	<header class="mb-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-		<div class="flex flex-1 items-center gap-3">
-			<YogaClipsLogo size={56} label="" />
-			<div>
+<main class="container mx-auto max-w-5xl px-4 pt-4 pb-44 sm:px-6" hidden={cinema}>
+	<header class="mb-5 flex items-center justify-between gap-3">
+		<div class="flex min-w-0 items-center gap-2">
+			<YogaClipsLogo size={34} label="" />
+			<div class="min-w-0">
 				<p
-					class="font-[Sora] text-[11px] font-medium tracking-[0.32em] text-infra"
+					class="font-[Sora] text-[9px] leading-none font-medium tracking-[0.32em] text-infra"
 					aria-hidden="true"
 				>
 					LE SPACE
 				</p>
 				<h1
-					class="font-[Sora] text-3xl leading-none font-bold tracking-tight text-heading lowercase sm:text-4xl"
+					class="font-[Sora] text-xl leading-tight font-bold tracking-tight text-heading lowercase"
 				>
 					{$_('app.title')}
 				</h1>
-				<p class="mt-2 text-sm text-faint">{$_('app.tagline')}</p>
 			</div>
 		</div>
-		<div class="flex flex-shrink-0 flex-wrap items-center gap-2 self-start sm:self-auto">
-			<DidBadge did={$ownDidStore ?? ''} />
-			<LanguageSwitcher />
-			<ThemeToggle />
-			<SocialIcons size="w-5 h-5" className="" />
-		</div>
+		<ConnectionPoint initialization={$initializationStore} libp2p={$libp2pStore}>
+			<PlaylistAddress />
+			<P2PStatusNav
+				initialization={$initializationStore}
+				libp2p={$libp2pStore}
+				peerId={$peerIdStore}
+			>
+				<ManualConnectForm
+					compact
+					disabled={!$initializationStore.isInitialized}
+					on:connected={handleManualConnect}
+				/>
+				<ConnectedPeers compact bind:this={connectedPeersRef} libp2p={$libp2pStore} />
+				<div class="max-w-full min-w-0 space-y-3 overflow-hidden">
+					<PeerIdCard compact peerId={$peerIdStore} />
+					<OwnMultiaddrs libp2p={$libp2pStore} />
+					<p class="text-xs break-words text-faint" data-testid="build-info">
+						{formatVersions({ appName: 'Yoga Clips' })} · {typeof __APP_BRANCH__ !== 'undefined'
+							? __APP_BRANCH__
+							: 'local'} [{typeof __BUILD_DATE__ !== 'undefined' ? __BUILD_DATE__ : 'dev'}]
+					</p>
+				</div>
+			</P2PStatusNav>
+		</ConnectionPoint>
 	</header>
-
-	<P2PStatusNav initialization={$initializationStore} libp2p={$libp2pStore} peerId={$peerIdStore}>
-		<ManualConnectForm
-			compact
-			disabled={!$initializationStore.isInitialized}
-			on:connected={handleManualConnect}
-		/>
-		<ConnectedPeers compact bind:this={connectedPeersRef} libp2p={$libp2pStore} />
-		<div class="max-w-full min-w-0 space-y-3 overflow-hidden">
-			<PeerIdCard compact peerId={$peerIdStore} />
-			<OwnMultiaddrs libp2p={$libp2pStore} />
-			<p class="text-xs break-words text-faint" data-testid="build-info">
-				{formatVersions({ appName: 'Yoga Clips' })} · {typeof __APP_BRANCH__ !== 'undefined'
-					? __APP_BRANCH__
-					: 'local'} [{typeof __BUILD_DATE__ !== 'undefined' ? __BUILD_DATE__ : 'dev'}]
-			</p>
-		</div>
-	</P2PStatusNav>
 
 	{#if !showModal && (error || $initializationStore.error)}
 		<ErrorAlert error={error || $initializationStore.error} dismissible={true} />
 	{/if}
 
-	{#if $initializationStore.isInitialized}
-		<div class="mt-4 flex flex-wrap items-center gap-3">
-			<PracticeStats {stats} />
-		</div>
-		<PlaylistPanel notify={showToast} />
-		<SharePanel />
-		<PermissionsPanel />
-	{/if}
+	<!--
+		Every view stays mounted and is only hidden: a half-typed form keeps its
+		text, and the playlist keeps its place, when a person looks elsewhere.
+	-->
+	<div hidden={$viewStore !== 'library'} data-testid="view-library">
+		{#if $initializationStore.isInitialized}
+			<Library
+				notify={showToast}
+				onopened={() => goTo('playlist')}
+				{continueClip}
+				continueDoneToday={continueClip ? doneToday(doneLog, continueClip.id) : false}
+				ondone={done}
+			/>
+		{/if}
+	</div>
 
-	<AddClipForm disabled={!$initializationStore.isInitialized} notify={showToast} />
+	<div hidden={$viewStore !== 'playlist'} data-testid="view-playlist">
+		<PlaylistView
+			onback={() => goTo('library')}
+			onshare={() => goTo('share')}
+			onadd={() => addSheet?.showModal()}
+			notify={showToast}
+		>
+			<ClipPlayer
+				clip={cinema ? null : playing}
+				playlistAddress={$activePlaylistStore.address}
+				playlistName={playlistDisplayName($activePlaylistStore.name)}
+				doneToday={playing ? doneToday(doneLog, playing.id) : false}
+				onclose={() => (playing = null)}
+				ondone={done}
+				onfullscreen={openCinema}
+			/>
+			{#if $initializationStore.isInitialized && $activePlaylistStore.kind !== 'none' && !cinema}
+				<ClipFilters
+					teachers={$teachersStore}
+					tags={$tagsStore}
+					bind:teacher={filterTeacher}
+					bind:tag={filterTag}
+					bind:minutes={filterMinutes}
+					count={filtered.length}
+					total={$clipsStore.length}
+				/>
+				<ClipGrid
+					clips={filtered}
+					total={$clipsStore.length}
+					{doneLog}
+					isOwner={$activePlaylistStore.kind === 'owner'}
+					{identityId}
+					currentId={playing?.id ?? ''}
+					onplay={play}
+					ondone={done}
+					onundo={undo}
+					onremove={remove}
+					{hasOtherPlaylists}
+					onmovecopy={(clip, canMove) => (relocating = { clip, canMove })}
+				/>
+			{/if}
+		</PlaylistView>
+	</div>
 
-	{#if $initializationStore.isInitialized && $activePlaylistStore.kind !== 'none' && !cinema}
-		<ClipFilters
-			teachers={$teachersStore}
-			tags={$tagsStore}
-			bind:teacher={filterTeacher}
-			bind:tag={filterTag}
-			bind:minutes={filterMinutes}
-			count={filtered.length}
-			total={$clipsStore.length}
-		/>
-		<ClipGrid
-			clips={filtered}
-			total={$clipsStore.length}
-			{doneLog}
-			isOwner={$activePlaylistStore.kind === 'owner'}
-			{identityId}
-			onplay={play}
-			ondone={done}
-			onundo={undo}
-			onremove={remove}
-		/>
-		<TransferPanel notify={showToast} />
-	{/if}
+	<div hidden={$viewStore !== 'practise'} data-testid="view-practise">
+		{#if $initializationStore.isInitialized}
+			<PractiseView {stats} {doneLog} onplay={playFromPractise} />
+		{/if}
+	</div>
+
+	<div hidden={$viewStore !== 'share'} data-testid="view-share">
+		<h2 class="mb-3 text-2xl font-semibold text-heading">{$_('nav.share')}</h2>
+		{#if $initializationStore.isInitialized}
+			{#if !$activePlaylistStore.address}
+				<p class="card p-6 text-center text-sm text-faint">{$_('share.none')}</p>
+			{/if}
+			<SharePanel />
+			<PermissionsPanel />
+		{/if}
+	</div>
+
+	<div hidden={$viewStore !== 'me'} data-testid="view-me" class="space-y-4">
+		<h2 class="text-2xl font-semibold text-heading">{$_('nav.me')}</h2>
+		<section class="card p-4">
+			<h3 class="text-sm font-semibold text-heading">{$_('connection.identityHeading')}</h3>
+			<p class="mt-0.5 mb-2 text-xs text-faint">
+				{$ownDidStore ? $_('connection.identityHint') : $_('connection.identityAnonymous')}
+			</p>
+			<DidBadge did={$ownDidStore ?? ''} />
+		</section>
+		<section class="card flex flex-wrap items-center justify-between gap-3 p-4">
+			<span class="text-sm font-semibold text-heading">{$_('me.appearance')}</span>
+			<span class="flex items-center gap-2"><LanguageSwitcher /><ThemeToggle /></span>
+		</section>
+		<p class="text-xs text-faint">{$_('me.connectionHint')}</p>
+		{#if $initializationStore.isInitialized && $activePlaylistStore.kind !== 'none'}
+			<TransferPanel notify={showToast} />
+		{/if}
+		<div class="flex justify-center pt-2"><SocialIcons size="w-5 h-5" className="" /></div>
+	</div>
 </main>
 
-<ClipPlayer
-	clip={playing}
-	playlistAddress={$activePlaylistStore.address}
-	doneToday={playing ? doneToday(doneLog, playing.id) : false}
-	onclose={() => (playing = null)}
-	ondone={done}
+{#if !cinema && !showModal}
+	<!-- On the library only: on a playlist's page adding sits in its head, so the
+		plus never lies over the player or a row. -->
+	{#if $viewStore === 'library'}
+		<button
+			type="button"
+			class="fixed right-4 bottom-24 z-30 flex h-14 w-14 items-center justify-center rounded-full bg-accent text-3xl leading-none text-accent-ink shadow-lg sm:right-8"
+			aria-label={$_('clip.addHeading')}
+			data-testid="add-clip-open"
+			on:click={() => addSheet?.showModal()}>+</button
+		>
+	{/if}
+	<BottomBar items={navItems} current={sectionOf($viewStore)} label={$_('nav.label')} />
+{/if}
+
+<dialog
+	bind:this={addSheet}
+	class="sheet backdrop:bg-black/70"
+	aria-label={$_('clip.addHeading')}
+	data-testid="add-clip-sheet"
+	on:click={(event) => event.target === addSheet && addSheet?.close()}
+>
+	<div class="flex justify-end px-4 pt-3">
+		<button
+			type="button"
+			class="btn btn-ghost btn-sm"
+			aria-label={$_('connection.close')}
+			on:click={() => addSheet?.close()}
+			data-testid="add-clip-close">✕</button
+		>
+	</div>
+	<AddClipForm
+		disabled={!$initializationStore.isInitialized}
+		notify={showToast}
+		onadded={() => {
+			addSheet?.close();
+			goTo('playlist');
+		}}
+	/>
+</dialog>
+
+<MoveCopyDialog
+	clip={relocating?.clip ?? null}
+	canMove={relocating?.canMove ?? false}
+	sourceAddress={$activePlaylistStore.address}
+	entries={$listRegistryStore}
+	check={canWriteTo}
+	onchoose={relocate}
+	onclose={() => (relocating = null)}
 />
 
-{#if SponsorRelayFab && !cinema}
+<!-- The relay's sponsor button floats where the plus and the bottom bar are; it lives on Me. -->
+{#if SponsorRelayFab && !cinema && $viewStore === 'me'}
 	<svelte:component
 		this={SponsorRelayFab}
 		manifestUrl="./rootfs-manifest.json"

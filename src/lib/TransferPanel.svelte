@@ -73,7 +73,7 @@
 
 <section class="card mt-4 p-4" data-testid="transfer-panel">
 	<div class="flex flex-wrap items-center gap-3">
-		<div class="min-w-0 flex-1">
+		<div class="min-w-0 flex-1 basis-72">
 			<h2 class="text-lg font-semibold text-heading">{$_('transfer.heading')}</h2>
 			<p class="mt-1 text-xs text-faint">{$_('transfer.hint')}</p>
 		</div>

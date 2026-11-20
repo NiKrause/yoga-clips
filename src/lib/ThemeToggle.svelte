@@ -20,8 +20,11 @@
 		} catch {
 			/* storage unavailable — session-only toggle */
 		}
+		// The page behind the body (app.html sets it before the first paint):
+		// night or paper, as the theme's --bg.
+		document.documentElement.style.background = next ? '#0B0E15' : '#FAF6EE';
 		const meta = document.querySelector('meta[name="theme-color"]');
-		if (meta) meta.setAttribute('content', next ? '#0B0E15' : '#EDF1F8');
+		if (meta) meta.setAttribute('content', next ? '#0B0E15' : '#FAF6EE');
 	}
 </script>
 

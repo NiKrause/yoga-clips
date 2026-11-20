@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import {
 	describeBootstrapMultiaddr,
+	resolveBootstrapCandidates,
 	resolveBootstrapMultiaddrs,
 	selectValidBrowserBootstrapMultiaddrs
 } from './bootstrap-multiaddrs.js';
@@ -50,6 +51,42 @@ describe('bootstrap multiaddress selection', () => {
 				fallback: ''
 			})
 		).toEqual({ addresses: [], source: 'none' });
+	});
+
+	it('lists every usable source in precedence order for the build to probe in turn', () => {
+		expect(
+			resolveBootstrapCandidates({
+				override: secureAddress,
+				discovered: [websocketAddress],
+				fallback: secureAddress
+			})
+		).toEqual([
+			{ source: 'override', addresses: [secureAddress] },
+			{ source: 'aleph', addresses: [websocketAddress] },
+			{ source: 'fallback', addresses: [secureAddress] }
+		]);
+	});
+
+	it('keeps the fallback as a later candidate when discovery already yielded a (possibly dead) relay', () => {
+		// The real failure: a discovered relay resolves but is unreachable. The
+		// fallback must still be offered so the build can fall through to it.
+		expect(
+			resolveBootstrapCandidates({ discovered: [websocketAddress], fallback: secureAddress })
+		).toEqual([
+			{ source: 'aleph', addresses: [websocketAddress] },
+			{ source: 'fallback', addresses: [secureAddress] }
+		]);
+	});
+
+	it('leaves out sources that contribute nothing usable', () => {
+		expect(
+			resolveBootstrapCandidates({
+				override: '/ip4/203.0.113.1/tcp/4001',
+				discovered: [],
+				fallback: secureAddress
+			})
+		).toEqual([{ source: 'fallback', addresses: [secureAddress] }]);
+		expect(resolveBootstrapCandidates({})).toEqual([]);
 	});
 
 	it('creates a readable selector label', () => {

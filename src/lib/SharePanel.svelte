@@ -1,8 +1,9 @@
 <script>
 	// The open playlist: what it is, and how to hand it to a friend — as a
-	// link, as a QR code, or as the bare OrbitDB address.
+	// link or as a QR code. Its OrbitDB address is behind the connection point
+	// (PlaylistAddress.svelte).
 	import { _ } from '$lib/i18n/index.js';
-	import { activePlaylistStore } from './clips/store.js';
+	import { activePlaylistStore, playlistDisplayName } from './clips/store.js';
 	import { buildAppLink } from './clips/share.js';
 
 	let copied = '';
@@ -46,20 +47,17 @@
 </script>
 
 {#if $activePlaylistStore.address}
-	<details class="card mt-4" data-testid="share-panel">
-		<summary class="cursor-pointer px-4 py-3 text-sm">
+	<section class="card" data-testid="share-panel">
+		<div class="px-4 py-3 text-sm">
 			<span class="font-semibold text-heading" data-testid="active-playlist-kind"
 				>{$activePlaylistStore.kind === 'owner'
 					? $_('playlist.kindOwner')
 					: $_('playlist.kindGuest')}</span
 			>
 			{#if $activePlaylistStore.name}
-				<span class="text-text" data-testid="active-playlist-name">
-					· {$activePlaylistStore.name}</span
-				>
+				<span class="text-text"> · {playlistDisplayName($activePlaylistStore.name)}</span>
 			{/if}
-			<span class="ml-2 text-xs text-faint">— {$_('share.heading')}</span>
-		</summary>
+		</div>
 		<div class="flex flex-col gap-3 border-t border-border px-4 py-3 sm:flex-row">
 			<div class="min-w-0 flex-1 space-y-3">
 				<p class="text-xs text-faint">{$_('share.hint')}</p>
@@ -79,23 +77,6 @@
 						</button>
 					</div>
 				</div>
-				<div>
-					<p class="text-xs text-faint">{$_('share.address')}</p>
-					<div class="mt-1 flex items-center gap-2">
-						<code
-							class="min-w-0 flex-1 font-mono text-[11px] break-all"
-							data-testid="active-playlist-address">{$activePlaylistStore.address}</code
-						>
-						<button
-							type="button"
-							on:click={() => copy('address', $activePlaylistStore.address)}
-							data-testid="share-copy-address"
-							class="btn btn-ghost btn-sm shrink-0"
-						>
-							{copied === 'address' ? $_('share.copied') : $_('share.copy')}
-						</button>
-					</div>
-				</div>
 			</div>
 			{#if qrDataUrl}
 				<img
@@ -108,5 +89,5 @@
 				/>
 			{/if}
 		</div>
-	</details>
+	</section>
 {/if}

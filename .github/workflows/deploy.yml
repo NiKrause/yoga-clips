@@ -53,31 +53,47 @@ jobs:
       - name: Unit tests
         run: pnpm run test:unit
 
-      - name: E2E (shared playlist, permissions, export, deep link, consent, passkey steps)
+      # Two runs, each with a relay of its own (start-e2e-server.mjs starts a
+      # fresh one per run). The replication specs measure what travels between
+      # their own browsers through the relay; run after the other specs, they
+      # waited behind the relay's sync of a playlist whose browser had already
+      # closed (the cinema spec's) and timed out (2 of 5 local runs, and the
+      # deploy run of f53f575).
+      - name: E2E (shared playlist, permissions, export, deep link, manual connection)
         id: e2e
         run: >-
           pnpm exec playwright test
           e2e/clips-sharing.spec.js
           e2e/manual-multiaddr-connection.spec.js
+          --project=chromium
+
+      - name: E2E (consent, passkey steps, Instagram, cinema, clip links, move and copy)
+        id: e2e_rest
+        run: >-
+          pnpm exec playwright test
           e2e/consent-identity-choice.spec.js
           e2e/consent-plain-default.spec.js
           e2e/passkey-steps.spec.js
           e2e/instagram-embed.spec.js
           e2e/cinema.spec.js
+          e2e/practise.spec.js
+          e2e/clip-link.spec.js
+          e2e/move-copy.spec.js
           --project=chromium
 
       - name: Summarize E2E
         if: always()
         env:
           E2E_OUTCOME: ${{ steps.e2e.outcome }}
+          E2E_REST_OUTCOME: ${{ steps.e2e_rest.outcome }}
         run: |
           {
             echo '## end-to-end test'
             echo
-            if [ "${E2E_OUTCOME}" = 'success' ]; then
+            if [ "${E2E_OUTCOME}" = 'success' ] && [ "${E2E_REST_OUTCOME}" = 'success' ]; then
               echo '**Result:** ✅ passed'
             else
-              echo "**Result:** ❌ ${E2E_OUTCOME}"
+              echo "**Result:** ❌ replication ${E2E_OUTCOME}, the rest ${E2E_REST_OUTCOME}"
             fi
             echo
             echo 'Chromium, a local OrbitDB relay, two isolated browser contexts with their own passkeys.'
@@ -88,8 +104,9 @@ jobs:
             echo "| Bob opens it by address, sees the clip, is refused when writing | ${E2E_OUTCOME} |"
             echo "| Alice grants Bob's DID; his clip replicates to Alice | ${E2E_OUTCOME} |"
             echo "| The export is a clips.json in the yoga-break schema | ${E2E_OUTCOME} |"
-            echo "| ?clip=<id> opens the clip in the player; done marks stay local | ${E2E_OUTCOME} |"
+            echo "| ?clip=<id> opens the clip in the cinema page; done marks stay local | ${E2E_OUTCOME} |"
             echo "| A copied own multiaddress connects a second browser | ${E2E_OUTCOME} |"
+            echo "| Consent gate, passkey steps, Instagram frame, cinema page (own relay) | ${E2E_REST_OUTCOME} |"
           } >> "$GITHUB_STEP_SUMMARY"
 
   build-and-deploy:
@@ -145,7 +162,13 @@ jobs:
           # When discovery finds nothing (the registration lapsed, Aleph's API
           # is down), the production relay's known address is still probed and
           # baked if it answers. Same address as in .env.example.
-          RELAY_BOOTSTRAP_FALLBACK: /dns4/crazy-pluck-uncle-device.2n6.me/tcp/443/tls/ws/p2p/12D3KooWQu5E1ZkGC5x2dSVTEWxYvsssWjXgk2Mzc8GZHN26cYzS
+          # Last-resort relay, used only when discovery of the production relay
+          # (relay-main-ekb) finds nothing reachable. The previous value
+          # (crazy-pluck-uncle-device.2n6.me) was gone from the channel and its
+          # 2n6 route dead. This one was live and reachable on 2026-11-19; both
+          # its 2n6 and libp2p.direct forms are listed for redundancy. Replace it
+          # if it rotates — the durable fix is relay-main-ekb being up.
+          RELAY_BOOTSTRAP_FALLBACK: /dns4/ocean-skate-resource-route.2n6.me/tcp/443/tls/ws/p2p/12D3KooWLaah6yFW7ohFEZgsDNpH86xtmpztvamgyoLvLMtNyfpR,/ip4/45.11.229.162/tcp/24048/tls/sni/45-11-229-162.k51qzi5uqu5dk62hih7mv5h3db2mntwwg9v3rxnxjzq73ijceevtayzfop9h1i.libp2p.direct/ws/p2p/12D3KooWLaah6yFW7ohFEZgsDNpH86xtmpztvamgyoLvLMtNyfpR
         run: node scripts/resolve-aleph-bootstrap.mjs
 
       - name: Build
@@ -156,7 +179,7 @@ jobs:
 
       - name: Install isolated Aleph deploy tooling
         if: steps.key.outputs.deploy == 'true' && (github.event_name == 'push' || github.event_name == 'workflow_dispatch')
-        run: npm install --prefix /tmp/le-space-deployer @le-space/node@0.12.4 --ignore-scripts
+        run: npm install --prefix /tmp/le-space-deployer @le-space/node@0.12.10 --ignore-scripts
 
       - name: Publish to Aleph IPFS
         if: steps.key.outputs.deploy == 'true' && (github.event_name == 'push' || github.event_name == 'workflow_dispatch')
@@ -207,7 +230,7 @@ jobs:
       - run: pnpm install --frozen-lockfile
 
       - name: Install isolated Aleph deploy tooling
-        run: npm install --prefix /tmp/le-space-deployer @le-space/node@0.12.4 --ignore-scripts
+        run: npm install --prefix /tmp/le-space-deployer @le-space/node@0.12.10 --ignore-scripts
 
       - name: Link custom domain
         if: inputs.domain != '' || env.ALEPH_MAIN_SITE_DOMAIN != ''

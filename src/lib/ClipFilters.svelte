@@ -1,5 +1,7 @@
 <script>
-	// "I have N minutes": the filter the mod answers for you, here by hand.
+	// The filter as one quiet row above the list (direction B): any length, up
+	// to 5, up to 10 minutes. Teacher and tag sit behind "Filter", so the list
+	// starts right below the player on a phone.
 	import { _ } from '$lib/i18n/index.js';
 
 	/** @type {string[]} */
@@ -13,7 +15,8 @@
 	export let count = 0;
 	export let total = 0;
 
-	const MAX_MINUTES = 30;
+	const LENGTHS = [0, 5, 10];
+	let more = false;
 
 	function reset() {
 		teacher = '';
@@ -21,64 +24,70 @@
 		minutes = 0;
 	}
 
-	$: active = teacher || tag || minutes > 0;
+	$: narrowed = Boolean(teacher || tag);
+	$: active = narrowed || minutes > 0;
 </script>
 
-<section class="card mt-4 p-4" data-testid="clip-filters">
-	<div class="flex flex-wrap items-end gap-3">
-		<h2 class="mr-auto text-lg font-semibold text-heading">{$_('filter.heading')}</h2>
-		<label class="block text-xs text-faint">
-			{$_('filter.teacher')}
-			<select
-				bind:value={teacher}
-				data-testid="filter-teacher"
-				class="mt-1 block rounded-md border border-border px-2 py-1.5 text-sm"
-			>
-				<option value="">{$_('filter.teacherAll')}</option>
-				{#each teachers as name (name)}
-					<option value={name}>{name}</option>
-				{/each}
-			</select>
-		</label>
-		<label class="block text-xs text-faint">
-			{$_('filter.tag')}
-			<select
-				bind:value={tag}
-				data-testid="filter-tag"
-				class="mt-1 block rounded-md border border-border px-2 py-1.5 text-sm"
-			>
-				<option value="">{$_('filter.tagAll')}</option>
-				{#each tags as name (name)}
-					<option value={name}>{name}</option>
-				{/each}
-			</select>
-		</label>
-		<label class="block min-w-48 text-xs text-faint">
-			<span data-testid="filter-minutes-label"
-				>{minutes > 0
-					? $_('filter.minutes', { values: { minutes } })
-					: $_('filter.minutesAny')}</span
-			>
-			<input
-				type="range"
-				min="0"
-				max={MAX_MINUTES}
-				step="1"
-				bind:value={minutes}
-				data-testid="filter-minutes"
-				class="mt-2 block w-full accent-[var(--accent)]"
-			/>
-		</label>
-	</div>
-	<div class="mt-2 flex items-center gap-3 text-xs text-faint">
-		<span data-testid="filter-count">{$_('filter.showing', { values: { count, total } })}</span>
-		{#if active}
+<section class="mt-2 mb-3" data-testid="clip-filters" aria-label={$_('filter.heading')}>
+	<div class="flex flex-wrap items-center gap-2">
+		{#each LENGTHS as length (length)}
 			<button
 				type="button"
-				on:click={reset}
-				class="underline hover:text-heading"
-				data-testid="filter-reset">{$_('filter.reset')}</button
+				class="chip !px-3 !py-1.5 !text-[13px] {minutes === length ? 'chip-on' : ''}"
+				aria-pressed={minutes === length}
+				on:click={() => (minutes = length)}
+				data-testid="filter-minutes-{length}"
 			>
-		{/if}
+				{length ? $_('filter.upTo', { values: { minutes: length } }) : $_('filter.all')}
+			</button>
+		{/each}
+		<button
+			type="button"
+			class="chip !px-3 !py-1.5 !text-[13px] {narrowed ? 'chip-on' : ''}"
+			aria-expanded={more}
+			on:click={() => (more = !more)}
+			data-testid="filter-more">{$_('filter.more')}{narrowed ? ' ·' : ''}</button
+		>
+		<span class="ml-auto text-xs text-faint" data-testid="filter-count"
+			>{$_('filter.showing', { values: { count, total } })}</span
+		>
 	</div>
+	{#if more}
+		<div class="mt-2 flex flex-wrap items-end gap-3">
+			<label class="block text-xs text-faint">
+				{$_('filter.teacher')}
+				<select
+					bind:value={teacher}
+					data-testid="filter-teacher"
+					class="mt-1 block rounded-lg border border-border px-2 py-1.5 text-sm"
+				>
+					<option value="">{$_('filter.teacherAll')}</option>
+					{#each teachers as name (name)}
+						<option value={name}>{name}</option>
+					{/each}
+				</select>
+			</label>
+			<label class="block text-xs text-faint">
+				{$_('filter.tag')}
+				<select
+					bind:value={tag}
+					data-testid="filter-tag"
+					class="mt-1 block rounded-lg border border-border px-2 py-1.5 text-sm"
+				>
+					<option value="">{$_('filter.tagAll')}</option>
+					{#each tags as name (name)}
+						<option value={name}>{name}</option>
+					{/each}
+				</select>
+			</label>
+			{#if active}
+				<button
+					type="button"
+					on:click={reset}
+					class="pb-2 text-xs text-faint underline hover:text-heading"
+					data-testid="filter-reset">{$_('filter.reset')}</button
+				>
+			{/if}
+		</div>
+	{/if}
 </section>

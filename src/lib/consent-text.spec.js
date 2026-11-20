@@ -11,6 +11,7 @@ describe('technicalClauseKeys', () => {
 			'readingIsOpen',
 			'oembed',
 			'embeds',
+			'clipLink',
 			'storage',
 			'identityAnonymous',
 			'cookies'

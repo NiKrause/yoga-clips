@@ -25,6 +25,7 @@ export const COMMON_CLAUSE_KEYS = Object.freeze([
 	'readingIsOpen',
 	'oembed',
 	'embeds',
+	'clipLink',
 	'storage'
 ]);
 

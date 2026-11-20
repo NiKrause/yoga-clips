@@ -74,31 +74,52 @@ export function parseBootstrapMultiaddrs(value) {
 		: [];
 }
 
+/** @typedef {'override' | 'aleph' | 'fallback'} BootstrapSource */
+
 /**
- * Resolve build-time addresses using explicit override, discovery, then fallback precedence.
+ * Every usable source, in precedence order (explicit override, Aleph
+ * discovery, then the configured fallback), each with its valid,
+ * browser-dialable addresses. Sources that contribute nothing are left out.
+ *
+ * The build probes these groups in turn, so when the discovered production
+ * relay is resolvable but dead, the deploy falls through to the fallback
+ * instead of aborting — rather than stopping at the first source that merely
+ * *has* addresses.
  *
  * @param {{ override?: string | null, discovered?: readonly string[], fallback?: string | null }} options
- * @returns {{ addresses: string[], source: 'override' | 'aleph' | 'fallback' | 'none' }}
+ * @returns {Array<{ source: BootstrapSource, addresses: string[] }>}
  */
-export function resolveBootstrapMultiaddrs({ override, discovered = [], fallback } = {}) {
-	/** @type {Array<['override' | 'aleph' | 'fallback', string[]]>} */
-	const candidates = [
+export function resolveBootstrapCandidates({ override, discovered = [], fallback } = {}) {
+	/** @type {Array<[BootstrapSource, string[]]>} */
+	const sources = [
 		['override', parseBootstrapMultiaddrs(override)],
 		['aleph', [...discovered]],
 		['fallback', parseBootstrapMultiaddrs(fallback)]
 	];
 
-	for (const [source, addresses] of candidates) {
+	/** @type {Array<{ source: BootstrapSource, addresses: string[] }>} */
+	const candidates = [];
+	for (const [source, addresses] of sources) {
 		const selected = selectValidBrowserBootstrapMultiaddrs(addresses);
-		if (selected.length > 0) {
-			return {
-				addresses: selected,
-				source
-			};
-		}
+		if (selected.length > 0) candidates.push({ source, addresses: selected });
 	}
+	return candidates;
+}
 
-	return { addresses: [], source: 'none' };
+/**
+ * Resolve build-time addresses using explicit override, discovery, then
+ * fallback precedence. The first usable source wins; reachability is not
+ * considered here (the build probes separately — see
+ * {@link resolveBootstrapCandidates}).
+ *
+ * @param {{ override?: string | null, discovered?: readonly string[], fallback?: string | null }} options
+ * @returns {{ addresses: string[], source: BootstrapSource | 'none' }}
+ */
+export function resolveBootstrapMultiaddrs(options = {}) {
+	const [first] = resolveBootstrapCandidates(options);
+	return first
+		? { addresses: first.addresses, source: first.source }
+		: { addresses: [], source: 'none' };
 }
 
 /**
