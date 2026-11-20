@@ -10,6 +10,14 @@
 	/** @type {'create' | 'existing' | 'anonymous'} */
 	export let mode = 'anonymous';
 
+	/**
+	 * Which half of the consent dialog is showing. In the simple view the hints
+	 * drop the stack names (WebAuthn, OrbitDB, DID, authenticator) for one plain
+	 * sentence each, and the "asked several times" detail is left for the
+	 * technical view. The labels and the choice itself are unchanged.
+	 */
+	export let technical = false;
+
 	// One field, because there is only one thing to say. WebAuthn takes a
 	// `user.name` and a `displayName`, but both are labels for the credential
 	// picker — neither identifies the passkey. What identifies it is the user
@@ -25,12 +33,15 @@
 		{
 			value: 'create',
 			label: $_('consent.identityCreate'),
-			hint: hasStoredPasskey
-				? $_('consent.identityCreateHintAnother')
-				: $_('consent.identityCreateHint'),
+			hint: technical
+				? hasStoredPasskey
+					? $_('consent.identityCreateHintAnother')
+					: $_('consent.identityCreateHint')
+				: $_('consent.plain.identityPasskey'),
 			// Said before the first prompt, not discovered at the third: four
-			// prompts in a row look like a fault to anyone who was not told.
-			prompts: $_('consent.identityCreatePrompts')
+			// prompts in a row look like a fault to anyone who was not told. The
+			// count of prompts is a technical-view detail.
+			prompts: technical ? $_('consent.identityCreatePrompts') : ''
 		},
 		{
 			value: 'existing',
@@ -43,15 +54,17 @@
 			// browser whose storage was cleared, cannot be found — and the option
 			// stays selectable, because a largeBlob-carrying passkey genuinely is
 			// recoverable here and disabling it would take that away.
-			hint: hasStoredPasskey
-				? $_('consent.identityExistingFound')
-				: $_('consent.identityExistingNone'),
-			prompts: $_('consent.identityExistingPrompts')
+			hint: technical
+				? hasStoredPasskey
+					? $_('consent.identityExistingFound')
+					: $_('consent.identityExistingNone')
+				: $_('consent.plain.identityPasskey'),
+			prompts: technical ? $_('consent.identityExistingPrompts') : ''
 		},
 		{
 			value: 'anonymous',
 			label: $_('consent.identityAnonymous'),
-			hint: $_('consent.identityAnonymousHint'),
+			hint: technical ? $_('consent.identityAnonymousHint') : $_('consent.plain.identityAnonymous'),
 			prompts: ''
 		}
 	];
@@ -93,7 +106,7 @@
 				class="w-full rounded-md border border-gray-300 px-2 py-1.5 text-sm"
 			/>
 			<p class="mt-1 text-xs text-gray-500" data-testid="passkey-label-hint">
-				{$_('consent.identityLabelHint')}
+				{technical ? $_('consent.identityLabelHint') : $_('consent.plain.identityLabelHint')}
 			</p>
 		</div>
 	{/if}
