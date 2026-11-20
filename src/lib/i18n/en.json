@@ -101,7 +101,9 @@
 			],
 			"identityPasskey": "Your passkey shows that it is you. Nobody else can add clips in your name.",
 			"identityAnonymous": "Without a passkey you exist only in this browser. If its data is cleared, you can no longer change your playlists.",
-			"identityLabelHint": "Just a name so you recognise this passkey later."
+			"identityLabelHint": "Just a name so you recognise this passkey later.",
+			"createPrompts": "Your device will ask the passkey a few times in a row — that is normal, and the app says what each one is for.",
+			"existingPrompts": "Your device will ask the passkey once, or a few times on a new device — that is normal."
 		},
 		"identityCreatePrompts": "The passkey is asked four times on the way: to be created, to note its identity, for the signing key, and to confirm that key. Before each further prompt the app says what it is for.",
 		"identityExistingPrompts": "One prompt; on a new device up to three. Before each further prompt the app says what it is for."

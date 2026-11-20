@@ -41,9 +41,15 @@ test.describe('The prompts of a passkey', () => {
 		await page.goto('/');
 		await waitForConsent(page);
 
-		// Before anything is asked: how often, and that each will be explained.
+		// Before anything is asked: that the passkey is asked more than once, so a
+		// run of prompts does not look like a fault. The simple view (the default)
+		// says it in plain words; the exact count is in the technical view, one
+		// toggle away.
 		await page.getByTestId('identity-mode-create').check();
+		await expect(page.getByTestId('passkey-prompts-hint')).toContainText(/a few times/i);
+		await page.getByTestId('consent-technical').click();
 		await expect(page.getByTestId('passkey-prompts-hint')).toContainText(/four times/i);
+		await page.getByTestId('consent-technical').click();
 
 		await proceedWithNewPasskey(page, 'Alice');
 

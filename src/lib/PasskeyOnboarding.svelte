@@ -38,10 +38,11 @@
 					? $_('consent.identityCreateHintAnother')
 					: $_('consent.identityCreateHint')
 				: $_('consent.plain.identityPasskey'),
-			// Said before the first prompt, not discovered at the third: four
-			// prompts in a row look like a fault to anyone who was not told. The
-			// count of prompts is a technical-view detail.
-			prompts: technical ? $_('consent.identityCreatePrompts') : ''
+			// Said before the first prompt, not discovered at the third: several
+			// prompts in a row look like a fault to anyone who was not told — which
+			// is exactly what a plain user needs, so the simple view keeps a plain
+			// sentence of it and the technical view the exact count.
+			prompts: technical ? $_('consent.identityCreatePrompts') : $_('consent.plain.createPrompts')
 		},
 		{
 			value: 'existing',
@@ -59,7 +60,9 @@
 					? $_('consent.identityExistingFound')
 					: $_('consent.identityExistingNone')
 				: $_('consent.plain.identityPasskey'),
-			prompts: technical ? $_('consent.identityExistingPrompts') : ''
+			prompts: technical
+				? $_('consent.identityExistingPrompts')
+				: $_('consent.plain.existingPrompts')
 		},
 		{
 			value: 'anonymous',
