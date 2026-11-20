@@ -4,6 +4,7 @@
 	import { _, json } from '$lib/i18n/index.js';
 	import LanguageSwitcher from './LanguageSwitcher.svelte';
 	import { formatBuildDate, formatVersions } from './build-info.js';
+	import { technicalClauseKeys } from './consent-text.js';
 
 	const dispatch = createEventDispatcher();
 
@@ -45,7 +46,12 @@
 	/** @type {any} */
 	let introEl;
 	let ready = false;
-	let technical = false;
+	/**
+	 * Which half of the dialog is showing. The simple half is the default and
+	 * what an ordinary user reads; the technical half is one button away. Exposed
+	 * so the identity chooser in the `before-confirmation` slot can follow it.
+	 */
+	export let technical = false;
 	let accepted = false;
 
 	const version = `${formatVersions()} [${formatBuildDate(
@@ -55,34 +61,24 @@
 	/**
 	 * The statement in plain words, assembled from what is actually configured.
 	 *
-	 * This is the "simple" half of the dialog; the element's technical view is
-	 * the other, and it renders itself. Written for somebody who does not work
-	 * in security and still has to decide something: what exists where, who can
-	 * read it, and what cannot be undone. No stack names, no protocol names —
-	 * those are one button away in the technical view for anyone who wants them.
+	 * "What this means for your data" — the privacy list the element renders. It
+	 * now has two versions. The simple view (the default) shows a short, plain
+	 * list that needs no glossary: no stack or protocol names, those are one
+	 * button away. The technical view shows the full, word-for-word clauses, two
+	 * of which depend on the identity chosen three inches above.
 	 *
-	 * A function rather than a list, because two of these sentences depend on
-	 * the identity chosen three inches above; the element re-reads them whenever
-	 * `choices` changes.
+	 * A function rather than a list, because the element re-reads it on every
+	 * change of `choices` — and `choices` carries the current view (`technical`)
+	 * as well as the identity, so the toggle reaches here too.
 	 *
 	 * @param {any} state
 	 */
 	const clauses = (state) =>
-		[
-			get(_)('consent.clause.noServer'),
-			get(_)('consent.clause.gateway'),
-			get(_)('consent.clause.relay'),
-			get(_)('consent.clause.playlist'),
-			get(_)('consent.clause.readingIsOpen'),
-			get(_)('consent.clause.oembed'),
-			get(_)('consent.clause.embeds'),
-			get(_)('consent.clause.clipLink'),
-			get(_)('consent.clause.storage'),
-			state.identity === 'anonymous'
-				? get(_)('consent.clause.identityAnonymous')
-				: get(_)('consent.clause.identityPasskey'),
-			get(_)('consent.clause.cookies')
-		].filter(Boolean);
+		state.technical
+			? technicalClauseKeys(state.identity)
+					.map((key) => get(_)(`consent.clause.${key}`))
+					.filter(Boolean)
+			: /** @type {string[]} */ (get(json)('consent.plain.privacy'));
 
 	/*
 		The element carries 30-odd strings and we used to hand it three, so the
@@ -110,8 +106,21 @@
 			$_('consent.relayDiscovered', { values: { count } })
 	};
 
+	/**
+	 * The simple view's connecting hints, in place of the hidden network check.
+	 * @type {string[]}
+	 */
+	let connectHints = [];
+	$: {
+		const raw = $json('consent.plain.connect');
+		connectHints = Array.isArray(raw) ? raw.map(String) : [];
+	}
+
 	$: if (ready) introEl.strings = strings;
-	$: if (ready) introEl.technical = technical;
+	$: if (ready) {
+		introEl.technical = technical;
+		applyNetworkCheckVisibility();
+	}
 	$: if (ready) {
 		introEl.privacy = { accept: true, clauses };
 		watchAcceptance();
@@ -167,6 +176,24 @@
 		if (!(close instanceof HTMLElement)) return;
 		close.hidden = true;
 		close.setAttribute('aria-hidden', 'true');
+	}
+
+	/**
+	 * The element shows its network check — "This browser, on this network", the
+	 * verdict, and (in the technical block) the addresses — and offers no flag to
+	 * drop it. For an ordinary yoga user that verdict is more than they need, so
+	 * in the simple view we fold the whole check away, the same way the dead close
+	 * control above is hidden, and the simple view carries two plain connecting
+	 * hints in its place. The technical view brings the check back.
+	 *
+	 * `.check` is an internal class rather than an exposed part; this reaches for
+	 * it as `hideDeadCloseControl` reaches for `button[disabled]`, and
+	 * `consent-plain-default.spec.js` fails if the element moves it.
+	 */
+	function applyNetworkCheckVisibility() {
+		const check = introEl?.shadowRoot?.querySelector('.check');
+		if (!(check instanceof HTMLElement)) return;
+		check.hidden = !technical;
 	}
 
 	function watchAcceptance() {
@@ -234,6 +261,26 @@
 		it knows about dialogs, not about this app.
 	-->
 	<slot name="before-confirmation" />
+
+	<!--
+		The simple view's stand-in for the element's network check (hidden in this
+		view by `applyNetworkCheckVisibility`): two plain sentences on getting a
+		second device connected, where the verdict and the address list would be.
+		The technical view shows the real check instead of this.
+	-->
+	{#if !technical}
+		<div
+			class="my-4 rounded-md border border-border p-3 text-sm"
+			data-testid="consent-connect-hints"
+		>
+			<p class="font-medium text-heading">{$_('consent.plain.connectHeading')}</p>
+			<ul class="mt-1 list-disc space-y-1 pl-5 text-text">
+				{#each connectHints as hint (hint)}
+					<li>{hint}</li>
+				{/each}
+			</ul>
+		</div>
+	{/if}
 
 	<div slot="footer" class="flex flex-col items-stretch gap-2 sm:items-end">
 		{#if notice && !error}

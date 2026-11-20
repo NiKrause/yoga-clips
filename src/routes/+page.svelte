@@ -116,6 +116,9 @@
 
 	let showModal = !standalone;
 	let rememberDecision = false;
+	// The consent dialog's simple/technical toggle, lifted here so the identity
+	// chooser in its slot follows the same view.
+	let consentTechnical = false;
 
 	// Filters
 	let filterTeacher = '';
@@ -617,6 +620,7 @@
 	<ConsentModal
 		bind:show={showModal}
 		bind:rememberDecision
+		bind:technical={consentTechnical}
 		canProceed={true}
 		identity={identityMode}
 		{error}
@@ -625,7 +629,11 @@
 		on:proceed={handleModalClose}
 	>
 		<svelte:fragment slot="before-confirmation">
-			<PasskeyOnboarding bind:mode={identityMode} bind:label={passkeyLabel} />
+			<PasskeyOnboarding
+				bind:mode={identityMode}
+				bind:label={passkeyLabel}
+				technical={consentTechnical}
+			/>
 		</svelte:fragment>
 	</ConsentModal>
 {/if}

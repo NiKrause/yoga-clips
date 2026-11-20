@@ -73,7 +73,7 @@
 		"identityAnonymousHint": "Use a random identity that exists only in this browser. Playlists you create here cannot follow you to another device.",
 		"identityLabelHint": "Only a label for the passkey picker. Your identity comes from the key, not from this name.",
 		"clause": {
-			"noServer": "We run no server, and no copy of your playlists exists anywhere we control.",
+			"noServer": "There is no account and no password with us, and we keep no database of your playlists. A relay (see below) is the exception: it may hold a copy so another device can collect it.",
 			"gateway": "The app itself is delivered through a public IPFS gateway, which sees that you loaded it. Your own Kubo node, or the IPFS Companion extension, fetches it from the network instead.",
 			"relay": "Relay nodes introduce devices to each other and may keep a copy of a playlist so another device can collect it later.",
 			"playlist": "A playlist you create decides who may write to it - you, and any friend whose identity you let in. It does not decide who may read it: anyone who has its address can.",
@@ -85,6 +85,25 @@
 			"identityPasskey": "Your passkey identifies you to the other devices. Nobody else can write as you.",
 			"identityAnonymous": "You are using a random identity that exists only in this browser. Clear its storage and it is gone - along with the right to write to your playlists.",
 			"cookies": "No tracking cookies are used. Besides your data, the only things saved on this device are your language, theme, and the choice to hide this notice."
+		},
+		"plain": {
+			"privacy": [
+				"Your playlists are kept on this device, in this browser. There is no account and no password with us.",
+				"So that your other devices and your friends can find a playlist, a go-between on the internet may keep a copy of it.",
+				"A playlist is not secret: anyone who has its link can look at it. Only you, and friends you allow, can change it. So put nothing private in it.",
+				"The videos come from YouTube, Vimeo or Instagram. Those services see that you watch, just as on their own pages. When you paste a link, the app also asks them for the title and the length.",
+				"We show no ads and do not track you."
+			],
+			"connectHeading": "Connecting another device",
+			"connect": [
+				"Keep the app open until the other device is connected. On a phone, switching to another app ends the invitation.",
+				"Not working? Two devices on the same Wi-Fi connect most reliably. With mobile data or a VPN it often fails."
+			],
+			"identityPasskey": "Your passkey shows that it is you. Nobody else can add clips in your name.",
+			"identityAnonymous": "Without a passkey you exist only in this browser. If its data is cleared, you can no longer change your playlists.",
+			"identityLabelHint": "Just a name so you recognise this passkey later.",
+			"createPrompts": "Your device will ask the passkey a few times in a row — that is normal, and the app says what each one is for.",
+			"existingPrompts": "Your device will ask the passkey once, or a few times on a new device — that is normal."
 		},
 		"identityCreatePrompts": "The passkey is asked four times on the way: to be created, to note its identity, for the signing key, and to confirm that key. Before each further prompt the app says what it is for.",
 		"identityExistingPrompts": "One prompt; on a new device up to three. Before each further prompt the app says what it is for."

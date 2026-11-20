@@ -72,6 +72,7 @@ jobs:
         run: >-
           pnpm exec playwright test
           e2e/consent-identity-choice.spec.js
+          e2e/consent-plain-default.spec.js
           e2e/passkey-steps.spec.js
           e2e/instagram-embed.spec.js
           e2e/cinema.spec.js
