@@ -8,6 +8,7 @@
 	import { tick } from 'svelte';
 	import { _ } from '$lib/i18n/index.js';
 	import { formatDuration, parseClipUrl } from './clips/schema.js';
+	import { cardBox, clipShape, SHAPE_RATIO } from './clips/aspect.js';
 	import { buildAppLink } from './clips/share.js';
 	import ClipFrame from './ClipFrame.svelte';
 
@@ -29,7 +30,12 @@
 
 	$: parsed = clip ? parseClipUrl(clip.url) : null;
 	$: embedUrl = parsed?.embedUrl ?? null;
-	$: upright = clip?.source === 'instagram';
+	// The clip's own format drives the frame, so an upright reel or a portrait
+	// post is shown whole instead of cropped into 16:9. Capped at 58vh so
+	// title and "Done" stay in view below it.
+	$: shape = clipShape(parsed);
+	$: upright = shape !== 'wide';
+	$: frameBox = cardBox(SHAPE_RATIO[shape], 58);
 	$: clipLink =
 		clip && typeof location !== 'undefined'
 			? buildAppLink(location.origin, { db: playlistAddress, clip: clip.id })
@@ -64,17 +70,20 @@
 		data-testid="player"
 		data-clip-id={clip.id}
 	>
-		{#if parsed && embedUrl && upright}
-			<div class="flex justify-center bg-black sm:rounded-2xl" data-testid="player-instagram">
-				<ClipFrame
-					{parsed}
-					title={clip.title}
-					frameClass="h-[min(58vh,40rem)] w-full max-w-[24rem] bg-white"
-				/>
-			</div>
-		{:else if parsed && embedUrl}
-			<div class="aspect-video w-full overflow-hidden bg-black sm:rounded-2xl">
-				<ClipFrame {parsed} title={clip.title} />
+		{#if parsed && embedUrl}
+			<div
+				class="overflow-hidden bg-black sm:rounded-2xl"
+				class:flex={upright}
+				class:justify-center={upright}
+				data-testid={upright ? 'player-instagram' : 'player-embed'}
+			>
+				<div style={frameBox} data-testid="player-frame" data-shape={shape}>
+					<ClipFrame
+						{parsed}
+						title={clip.title}
+						frameClass={upright ? 'h-full w-full bg-white' : 'h-full w-full'}
+					/>
+				</div>
 			</div>
 		{:else}
 			<div
