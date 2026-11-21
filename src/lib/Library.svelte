@@ -6,6 +6,7 @@
 	// before; only the shape changed.
 	import { _ } from '$lib/i18n/index.js';
 	import { formatDuration, parseClipUrl } from './clips/schema.js';
+	import { cardBox, clipShape, posterRatio, SHAPE_RATIO } from './clips/aspect.js';
 	import { summariesStore } from './clips/summaries.js';
 	import { thumbnailFor } from './clips/thumbnails.js';
 	import ClipFrame from './ClipFrame.svelte';
@@ -36,19 +37,42 @@
 	let continuePlaying = false;
 	/** @type {string | null} */
 	let continueThumb = null;
+	/** The poster's own ratio once it loads; null until then. @type {number | null} */
+	let continuePosterRatio = null;
 	$: continueParsed = continueClip ? parseClipUrl(continueClip.url) : null;
 	$: continueClipId = continueClip?.id ?? '';
 	$: loadContinueThumb(continueClipId);
+
+	// The clip's own format, so "continue" shows an upright reel or a portrait
+	// post whole instead of cropping it into 16:9. The poster is kept to the
+	// shape default until its own ratio is known — except for YouTube, whose
+	// hqdefault carries baked letterbox bars that 16:9 object-cover trims away.
+	$: continueShape = clipShape(continueParsed);
+	$: continueUpright = continueShape !== 'wide';
+	$: continuePosterBox = cardBox(
+		continueClip?.source !== 'youtube' && continuePosterRatio
+			? continuePosterRatio
+			: SHAPE_RATIO[continueShape],
+		55
+	);
+	$: continuePlayerBox = cardBox(SHAPE_RATIO[continueShape], 55);
 
 	/** @param {string} id */
 	function loadContinueThumb(id) {
 		continuePlaying = false;
 		continueThumb = null;
+		continuePosterRatio = null;
 		const clip = continueClip;
 		if (!clip) return;
 		void thumbnailFor(clip).then((url) => {
 			if (continueClip?.id === id) continueThumb = url;
 		});
+	}
+
+	/** @param {Event} event */
+	function measurePoster(event) {
+		const img = /** @type {HTMLImageElement} */ (event.currentTarget);
+		continuePosterRatio = posterRatio(img.naturalWidth, img.naturalHeight);
 	}
 
 	$: owned = $listRegistryStore.filter((entry) => entry.role === 'owner');
@@ -146,13 +170,25 @@
 			<h2 class="section-label">{$_('library.continue')}</h2>
 			<div class="card overflow-hidden">
 				{#if continuePlaying && continueParsed?.embedUrl}
-					<div class="aspect-video w-full bg-black">
-						<ClipFrame parsed={continueParsed} title={continueClip.title} />
+					<div class="bg-black" class:flex={continueUpright} class:justify-center={continueUpright}>
+						<div
+							style={continuePlayerBox}
+							data-testid="library-continue-frame"
+							data-shape={continueShape}
+						>
+							<ClipFrame
+								parsed={continueParsed}
+								title={continueClip.title}
+								frameClass={continueUpright ? 'h-full w-full bg-white' : 'h-full w-full'}
+							/>
+						</div>
 					</div>
 				{:else}
 					<button
 						type="button"
-						class="group relative block aspect-video w-full bg-tile-2"
+						class="group relative mx-auto block overflow-hidden bg-tile-2"
+						style={continuePosterBox}
+						data-shape={continueShape}
 						on:click={() => (continueParsed?.embedUrl ? (continuePlaying = true) : onopened())}
 						aria-label={$_('clip.play')}
 						data-testid="library-continue-play"
@@ -165,6 +201,7 @@
 								loading="lazy"
 								referrerpolicy="no-referrer"
 								class="h-full w-full object-cover"
+								on:load={measurePoster}
 							/>
 						{/if}
 						<span class="absolute top-2 left-2 rounded bg-bg px-2 py-0.5 text-[11px] text-heading"
