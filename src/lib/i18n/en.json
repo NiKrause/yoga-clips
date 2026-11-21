@@ -467,5 +467,9 @@
 		"alsoFits": "Also fits",
 		"nothingFits": "No clip fits into that time. Choose a little more.",
 		"noClips": "No clips yet. Add one to a playlist in the library."
+	},
+	"freePick": {
+		"noFit": "No clip in this playlist fits into {free}. The shortest takes {shortest}.",
+		"noFitEmpty": "No clip in this playlist fits into {free}."
 	}
 }

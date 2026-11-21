@@ -18,6 +18,16 @@
  * the string itself, and the texts are plain text, cut short. Without a
  * valid `url` the link is an ordinary clip link: the app starts, and the
  * clip is fetched from the playlist. Nothing else is read from the URL.
+ *
+ * `?db=<address>&free=<seconds>` is a playlist link with the free time the
+ * app has to fill — how the `yoga-break` mod hands a break over when no
+ * local clips.json is set. The app starts as for any playlist link (consent,
+ * identity, relay — nothing skipped); once the playlist's clips are here it
+ * picks the longest that fits and opens it in the cinema, and the address
+ * becomes `?db=…&clip=<id>`. `parseFreePick` reads `free`: 1–5 digits,
+ * 1..MAX_DURATION_SEC seconds, already minus the mod's own safety margin. It
+ * counts only with a valid `db` and no `clip`; anything else is an ordinary
+ * playlist link.
  */
 
 import { MAX_DURATION_SEC, parseClipUrl } from './schema.js';
@@ -37,6 +47,27 @@ export function parseAppLink(search) {
 		db: ADDRESS.test(db) ? db : null,
 		clip: CLIP_ID.test(clip) ? clip : null
 	};
+}
+
+/**
+ * The free-time pick a playlist link carries: `?db=…&free=<seconds>` without
+ * a `clip`. `free` is 1–5 digits and 1..MAX_DURATION_SEC seconds — the time
+ * the app has to fill, already minus the mod's safety margin. Null when the
+ * link names no valid free time, names a clip too, or has no valid db: then
+ * it is an ordinary playlist link.
+ *
+ * @param {string} search `location.search`, with or without the `?`
+ * @returns {{ db: string, free: number } | null}
+ */
+export function parseFreePick(search) {
+	const { db, clip } = parseAppLink(search);
+	if (!db || clip) return null;
+	const params = new URLSearchParams(search.startsWith('?') ? search.slice(1) : search);
+	const raw = params.get('free')?.trim() ?? '';
+	if (!/^\d{1,5}$/.test(raw)) return null;
+	const free = Number(raw);
+	if (free < 1 || free > MAX_DURATION_SEC) return null;
+	return { db, free };
 }
 
 /**
