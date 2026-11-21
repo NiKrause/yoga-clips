@@ -7,7 +7,8 @@
 	// minutes today and this week sit here too.
 	import { onMount } from 'svelte';
 	import { _ } from '$lib/i18n/index.js';
-	import { formatDuration } from './clips/schema.js';
+	import { formatDuration, parseClipUrl } from './clips/schema.js';
+	import { cardBox, clipShape, posterRatio, SHAPE_RATIO } from './clips/aspect.js';
 	import { fittingClips } from './clips/practice.js';
 	import { knownClipsStore } from './clips/summaries.js';
 	import { thumbnailFor } from './clips/thumbnails.js';
@@ -86,17 +87,35 @@
 
 	/** @type {string | null} */
 	let thumb = null;
+	/** The poster's own ratio once it loads; null until then. @type {number | null} */
+	let posterR = null;
 	$: suggestionKey = suggestion ? `${suggestion.address} ${suggestion.id}` : '';
 	$: loadThumb(suggestionKey);
+
+	// The suggestion's own format, so an upright reel shows whole, capped so the
+	// title and "also fits" below it stay in view. YouTube keeps 16:9 (its
+	// hqdefault carries baked bars that object-cover trims).
+	$: suggestionShape = clipShape(suggestion ? parseClipUrl(suggestion.url) : null);
+	$: suggestionBox = cardBox(
+		suggestion?.source !== 'youtube' && posterR ? posterR : SHAPE_RATIO[suggestionShape],
+		50
+	);
 
 	/** @param {string} key */
 	function loadThumb(key) {
 		thumb = null;
+		posterR = null;
 		const clip = suggestion;
 		if (!clip) return;
 		void thumbnailFor(clip).then((url) => {
 			if (suggestionKey === key) thumb = url;
 		});
+	}
+
+	/** @param {Event} event */
+	function measurePoster(event) {
+		const img = /** @type {HTMLImageElement} */ (event.currentTarget);
+		posterR = posterRatio(img.naturalWidth, img.naturalHeight);
 	}
 </script>
 
@@ -119,7 +138,9 @@
 		<div class="card mt-5 max-w-2xl overflow-hidden" data-testid="practise-suggestion">
 			<button
 				type="button"
-				class="group relative block aspect-video w-full bg-tile-2"
+				class="group relative mx-auto block overflow-hidden bg-tile-2"
+				style={suggestionBox}
+				data-shape={suggestionShape}
 				on:click={() => onplay({ address: suggestion.address, clip: suggestion })}
 				aria-label={`${$_('clip.play')}: ${suggestion.title}`}
 				data-testid="practise-play"
@@ -131,6 +152,7 @@
 						loading="lazy"
 						referrerpolicy="no-referrer"
 						class="h-full w-full object-cover"
+						on:load={measurePoster}
 					/>
 				{/if}
 				<span

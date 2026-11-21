@@ -22,6 +22,7 @@
 	import { _, locale } from '$lib/i18n/index.js';
 	import { formatPosted, postedAt } from './clips/posted.js';
 	import { formatDuration, parseClipUrl } from './clips/schema.js';
+	import { cinemaBox, clipShape, SHAPE_RATIO } from './clips/aspect.js';
 	import ClipFrame from './ClipFrame.svelte';
 
 	/** The clip the link asked for, once it is here. @type {import('./clips/schema.js').Clip | null} */
@@ -70,6 +71,10 @@
 	$: parsed = clip ? parseClipUrl(clip.url) : null;
 	$: playable = Boolean(parsed?.embedUrl);
 	$: instagram = clip?.source === 'instagram';
+	// The clip fills the dark stage in its own format, upright or wide, never
+	// cropped; the stage letterboxes what is left.
+	$: shape = clipShape(parsed);
+	$: stageBox = cinemaBox(SHAPE_RATIO[shape]);
 	$: sourceName = clip ? $_(`source.${clip.source}`) : '';
 	$: title = clip ? clip.title || $_('cinema.untitled') : '';
 	/** When the clip was posted, where its link says so: Instagram's does. */
@@ -207,12 +212,14 @@
 					(missing ? $_('cinema.notFound') : slow ? $_('cinema.slow') : $_('cinema.waiting'))}
 			</p>
 		{:else if started && parsed && playable}
-			<ClipFrame
-				{parsed}
-				{title}
-				onended={playerEnded}
-				frameClass={instagram ? 'h-full w-full max-w-[32rem] bg-white' : 'h-full w-full'}
-			/>
+			<div style={stageBox} data-testid="cinema-frame" data-shape={shape}>
+				<ClipFrame
+					{parsed}
+					{title}
+					onended={playerEnded}
+					frameClass={instagram ? 'h-full w-full bg-white' : 'h-full w-full'}
+				/>
+			</div>
 		{:else if playable}
 			<!-- The page exists for this one control. Without `autofocus` SvelteKit's
 			     focus reset after the first navigation takes the focus back

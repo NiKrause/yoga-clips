@@ -67,7 +67,7 @@ jobs:
           e2e/manual-multiaddr-connection.spec.js
           --project=chromium
 
-      - name: E2E (consent, passkey steps, Instagram, cinema, clip links, free pick, move and copy)
+      - name: E2E (consent, passkey steps, Instagram, cinema, clip links, formats, free pick, move and copy)
         id: e2e_rest
         run: >-
           pnpm exec playwright test
@@ -78,6 +78,7 @@ jobs:
           e2e/cinema.spec.js
           e2e/practise.spec.js
           e2e/clip-link.spec.js
+          e2e/clip-format.spec.js
           e2e/free-pick.spec.js
           e2e/move-copy.spec.js
           --project=chromium
