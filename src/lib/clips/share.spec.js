@@ -4,9 +4,11 @@ import {
 	LINK_TEXT_MAX,
 	linkText,
 	parseAppLink,
+	parseFreePick,
 	parseStandaloneClip,
 	withoutClipLink
 } from './share.js';
+import { MAX_DURATION_SEC } from './schema.js';
 
 describe('app links', () => {
 	const address = '/orbitdb/zdpuAzyoga000000000000000000000000000000000000000';
@@ -25,6 +27,49 @@ describe('app links', () => {
 	it('ignores values that are not an address or an id', () => {
 		expect(parseAppLink('?db=javascript:alert(1)&clip=<img>')).toEqual({ db: null, clip: null });
 		expect(parseAppLink('')).toEqual({ db: null, clip: null });
+	});
+});
+
+describe('a playlist link with free time', () => {
+	const address = '/orbitdb/zdpuAzyoga000000000000000000000000000000000000000';
+	/** @param {Record<string, string>} params */
+	const link = (params) => `?${new URLSearchParams(params)}`;
+
+	it('reads the free seconds with a valid db and no clip', () => {
+		expect(parseFreePick(link({ db: address, free: '240' }))).toEqual({ db: address, free: 240 });
+		expect(parseFreePick(link({ db: address, free: '1' }))).toEqual({ db: address, free: 1 });
+		expect(parseFreePick(link({ db: address, free: String(MAX_DURATION_SEC) }))).toEqual({
+			db: address,
+			free: MAX_DURATION_SEC
+		});
+	});
+
+	it('is nothing without a valid db', () => {
+		expect(parseFreePick(link({ free: '240' }))).toBeNull();
+		expect(parseFreePick(link({ db: 'javascript:alert(1)', free: '240' }))).toBeNull();
+	});
+
+	it('is nothing when the link also names a clip', () => {
+		expect(parseFreePick(link({ db: address, clip: 'clip-0001', free: '240' }))).toBeNull();
+	});
+
+	it('refuses a free time that is not 1 to 5 digits in range', () => {
+		for (const free of [
+			'0',
+			'-5',
+			'1.5',
+			'1e3',
+			' ',
+			'abc',
+			'999999',
+			String(MAX_DURATION_SEC + 1)
+		]) {
+			expect(parseFreePick(link({ db: address, free })), free).toBeNull();
+		}
+	});
+
+	it('is nothing without a free parameter at all (an ordinary playlist link)', () => {
+		expect(parseFreePick(link({ db: address }))).toBeNull();
 	});
 });
 

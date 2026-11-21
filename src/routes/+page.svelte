@@ -1,5 +1,6 @@
 <script>
 	import { onMount } from 'svelte';
+	import { get } from 'svelte/store';
 	import { replaceState } from '$app/navigation';
 	import { _ } from '$lib/i18n/index.js';
 	import { peerIdStore, initializationStore, ownDidStore, libp2pStore } from '$lib/p2p-stores.js';
@@ -58,7 +59,14 @@
 	import ClipGrid from '$lib/ClipGrid.svelte';
 	import ClipPlayer from '$lib/ClipPlayer.svelte';
 	import ClipCinema from '$lib/ClipCinema.svelte';
-	import { parseAppLink, parseStandaloneClip, withoutClipLink } from '$lib/clips/share.js';
+	import {
+		parseAppLink,
+		parseFreePick,
+		parseStandaloneClip,
+		withoutClipLink
+	} from '$lib/clips/share.js';
+	import { pickForFree, shortestKnownSec } from '$lib/clips/practice.js';
+	import { formatDuration } from '$lib/clips/schema.js';
 	import TransferPanel from '$lib/TransferPanel.svelte';
 	import PractiseView from '$lib/PractiseView.svelte';
 
@@ -190,12 +198,33 @@
 			(filterMinutes <= 0 || clip.durationSec <= filterMinutes * 60)
 	);
 
+	// A free-time link (`?db=…&free=<seconds>`, the yoga-break mod's, when no
+	// local clips.json is set): the app starts as for any playlist link, and
+	// once the playlist's clips are here it picks the longest that fits and
+	// opens it in the cinema. Until then the cinema waits, as a `?clip=` link
+	// does; nothing fits, after the playlist had time to arrive, and the
+	// playlist view says so. Picking writes nothing to the playlist.
+	/** @type {ReturnType<typeof parseFreePick>} */
+	let freePick = typeof location === 'undefined' ? null : parseFreePick(location.search);
+	/** Set once a free-time link found no clip that fits, after the wait. */
+	let freeNoFit = false;
+	/** The free time that found nothing, and the shortest known length — for the
+	 * line that says nothing fits. @type {number} */
+	let freeBudgetSec = 0;
+	/** @type {number | null} */
+	let freeShortestSec = null;
+	/** @type {ReturnType<typeof setTimeout> | null} */
+	let freePickTimer = null;
+
 	// A `?clip=<id>` link opens the cinema page instead of the list: the one
 	// clip, large, on a dark page. The clip may take a moment — a guest's copy
 	// arrives from the relay — so the cinema waits, and says so if the clip
 	// never turns up. Nothing of the list is drawn meanwhile, so no card asks
-	// a service for a thumbnail behind the cinema's back.
-	let cinema = typeof location !== 'undefined' && parseAppLink(location.search).clip !== null;
+	// a service for a thumbnail behind the cinema's back. A free-time link
+	// waits in the cinema the same way while it looks for its clip.
+	let cinema =
+		typeof location !== 'undefined' &&
+		(parseAppLink(location.search).clip !== null || freePick !== null);
 	/** @type {Clip | null} */
 	let cinemaClip = standalone?.clip ?? null;
 	let cinemaMissing = false;
@@ -265,6 +294,64 @@
 		slowTimer = null;
 	}
 
+	$: resolveFreePick($clipsStore, playlistReady);
+
+	/**
+	 * A free-time link picks a clip once the playlist's clips are here: the
+	 * longest that fits, opened in the cinema as `?clip=` would, and the address
+	 * loses `free` and gains the clip, so a reload shows the same clip instead
+	 * of picking again. Nothing fits, after the playlist had its usual time to
+	 * arrive: the playlist view says so, naming the shortest clip's length. The
+	 * pick is a pure function (clips/practice.js) and writes nothing.
+	 *
+	 * @param {Clip[]} clips
+	 * @param {boolean} ready
+	 */
+	function resolveFreePick(clips, ready) {
+		if (!freePick || cinemaClip || freeNoFit) return;
+		const picked = pickForFree(clips, freePick.free, (id) => doneToday(doneLog, id));
+		if (picked) {
+			stopFreePickTimer();
+			cinemaClip = picked;
+			cinema = true;
+			cinemaMissing = false;
+			cinemaSlow = false;
+			rememberPlayed(picked);
+			freePick = null;
+			const url = new URL(location.href);
+			url.searchParams.delete('free');
+			url.searchParams.set('clip', picked.id);
+			try {
+				replaceState(url, {});
+			} catch {
+				history.replaceState(history.state, '', url);
+			}
+			return;
+		}
+		// No clip fits yet. Wait for the playlist to arrive before saying so — a
+		// playlist just opened is empty for some seconds.
+		if (!ready || freePickTimer) return;
+		freePickTimer = setTimeout(() => {
+			freePickTimer = null;
+			if (!freePick) return;
+			const now = get(clipsStore);
+			if (pickForFree(now, freePick.free, (id) => doneToday(doneLog, id))) return;
+			freeBudgetSec = freePick.free;
+			freeShortestSec = shortestKnownSec(now);
+			freeNoFit = true;
+			freePick = null;
+			cinema = false;
+			cinemaClip = null;
+			// Land on the playlist the link named, where the line sits.
+			if (get(activePlaylistStore).address) goTo('playlist');
+		}, DEEP_LINK_PATIENCE_MS);
+	}
+
+	function stopFreePickTimer() {
+		if (freePickTimer) clearTimeout(freePickTimer);
+		freePickTimer = null;
+	}
+
 	/**
 	 * "Fullscreen" by the player: the cinema page for this clip, started at
 	 * once — the press that asked for it is the gesture fullscreen needs.
@@ -289,8 +376,14 @@
 		cinemaMissing = false;
 		cinemaSlow = false;
 		requestedClipStore.set(null);
+		// Leaving while a free-time link was still looking for its clip: stop
+		// looking, and drop `free` so a reload does not pick again.
+		freePick = null;
+		freeNoFit = false;
+		stopFreePickTimer();
 		stopDeepLinkTimers();
 		const url = withoutClipLink(location.href);
+		url.searchParams.delete('free');
 		try {
 			replaceState(url, {});
 		} catch {
@@ -696,6 +789,19 @@
 			</P2PStatusNav>
 		</ConnectionPoint>
 	</header>
+
+	{#if freeNoFit}
+		<div class="card mb-4 px-4 py-3 text-sm text-heading" role="status" data-testid="free-no-fit">
+			{freeShortestSec
+				? $_('freePick.noFit', {
+						values: {
+							free: formatDuration(freeBudgetSec),
+							shortest: formatDuration(freeShortestSec)
+						}
+					})
+				: $_('freePick.noFitEmpty', { values: { free: formatDuration(freeBudgetSec) } })}
+		</div>
+	{/if}
 
 	{#if !showModal && (error || $initializationStore.error)}
 		<ErrorAlert error={error || $initializationStore.error} dismissible={true} />
