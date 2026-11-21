@@ -39,7 +39,11 @@ test('the playlist player frames a reel upright and a YouTube clip wide, both on
 	await startAnonymous(page);
 	await createPlaylist(page, 'Formats');
 	await addClip(page, { url: `${REEL}?igsh=abc`, title: 'Wrist warm-up', duration: '2' });
-	await addClip(page, { url: `https://youtu.be/${VIDEO}`, title: 'Shoulder opener', duration: '5' });
+	await addClip(page, {
+		url: `https://youtu.be/${VIDEO}`,
+		title: 'Shoulder opener',
+		duration: '5'
+	});
 
 	const viewport = page.viewportSize();
 	if (!viewport) throw new Error('no viewport');
@@ -76,7 +80,11 @@ test('the cinema page frames a reel upright and on the stage', async ({ page, co
 
 	await startAnonymous(page);
 	await createPlaylist(page, 'Cinema formats');
-	const id = await addClip(page, { url: `${REEL}?igsh=abc`, title: 'Wrist warm-up', duration: '2' });
+	const id = await addClip(page, {
+		url: `${REEL}?igsh=abc`,
+		title: 'Wrist warm-up',
+		duration: '2'
+	});
 
 	await page.goto(`/?clip=${id}`);
 	await passConsent(page, { identity: 'anonymous' });
